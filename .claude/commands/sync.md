@@ -8,17 +8,27 @@ Pull latest docs from superkit, check LSP version sync, update if changed, and p
 
 ### Phase 1: Fetch Latest Docs from Superkit
 
-Use WebFetch to get the raw content:
+Use curl to get the exact raw content (WebFetch summarizes, we need exact):
 
-1. Fetch `https://raw.githubusercontent.com/chrismo/superkit/main/doc/superdb-expert.md`
-2. Fetch `https://raw.githubusercontent.com/chrismo/superkit/main/doc/zq-to-super-upgrades.md`
+```bash
+curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/superdb-expert.md > /tmp/superdb-expert-new.md
+curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/zq-to-super-upgrades.md > /tmp/zq-to-super-upgrades-new.md
+```
+
+Extract the version from the upgrade doc header:
+```bash
+grep -o 'SuperDB Version [0-9.]*' /tmp/zq-to-super-upgrades-new.md | grep -o '[0-9.]*'
+```
 
 ### Phase 2: Compare with Current Bundled Docs
 
-1. Read current `docs/superdb-expert.md`
-2. Read current `docs/zq-to-super-upgrades.md`
-3. Compare content (ignore whitespace differences)
-4. Extract version from upgrade doc header - look for pattern: `SuperDB Version (\d+\.\d+)`
+**Note:** Bundled docs have YAML frontmatter that superkit originals don't have. Compare the body content only.
+
+1. Read current `docs/superdb-expert.md` and `docs/zq-to-super-upgrades.md`
+2. Strip YAML frontmatter (everything between `---` markers at the top) for comparison
+3. Compare body content with fetched files
+4. Extract current bundled version from frontmatter: `superdb_version: "X.XXXXX"`
+5. Compare with fetched version from header: `SuperDB Version X.XXXXX`
 
 ### Phase 3: Check LSP Release Version
 
@@ -34,9 +44,31 @@ Use WebFetch to get the raw content:
 
 If fetched docs differ from current:
 
-1. **Update docs**:
-   - Write fetched content to `docs/superdb-expert.md`
-   - Write fetched content to `docs/zq-to-super-upgrades.md`
+1. **Update docs** (preserve YAML frontmatter format):
+
+   For `docs/superdb-expert.md`, prepend frontmatter:
+   ```yaml
+   ---
+   name: superdb-expert
+   description: "Expert guide for SuperDB queries and data transformations. Covers syntax, patterns, and best practices."
+   superdb_version: "X.XXXXX"
+   last_updated: "YYYY-MM-DD"
+   source: "https://github.com/chrismo/superkit/blob/main/doc/superdb-expert.md"
+   ---
+   ```
+
+   For `docs/zq-to-super-upgrades.md`, prepend frontmatter:
+   ```yaml
+   ---
+   name: zq-to-super-upgrades
+   description: "Migration guide from zq to SuperDB. Covers all breaking changes and syntax updates."
+   superdb_version: "X.XXXXX"
+   last_updated: "YYYY-MM-DD"
+   source: "https://github.com/chrismo/superkit/blob/main/doc/zq-to-super-upgrades.md"
+   ---
+   ```
+
+   Then append the fetched content (stripping any duplicate header if present).
 
 2. **Determine new version**:
    - Extract doc version from upgrade doc header (e.g., `0.51232`)
