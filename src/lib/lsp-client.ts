@@ -85,11 +85,13 @@ export function checkLspAvailability(): LSPAvailability {
       encoding: 'utf-8',
     });
 
-    if (result.error || result.status !== 0) {
+    // LSP servers typically don't have --help, they just wait for stdin
+    // So we consider it available if it starts without immediate error
+    if (result.error) {
       return {
         available: false,
         path: lspPath,
-        error: `LSP server at ${lspPath} is not working: ${result.error?.message || 'unknown error'}`,
+        error: `LSP server at ${lspPath} failed to start: ${result.error.message}`,
       };
     }
 
@@ -108,13 +110,12 @@ export function checkLspAvailability(): LSPAvailability {
 }
 
 /**
- * Simple LSP client that spawns the server, sends a request, and gets a response
- * Uses a fresh process per request for simplicity
+ * Simple LSP client that spawns the server for each operation.
+ * Sends all messages (initialize, didOpen, request) in a single session.
  */
 export class LSPClient {
   private lspPath: string;
   private timeout: number;
-  private messageId: number = 0;
 
   constructor(options: LSPClientOptions = {}) {
     const path = options.lspPath || getLspPath();
@@ -126,9 +127,49 @@ export class LSPClient {
   }
 
   /**
-   * Send a request to the LSP and get a response
+   * Format a JSON-RPC message with Content-Length header
    */
-  private async sendRequest(method: string, params: unknown): Promise<unknown> {
+  private formatMessage(message: Omit<LSPMessage, 'jsonrpc'> & { jsonrpc?: '2.0' }): string {
+    const content = JSON.stringify({ jsonrpc: '2.0', ...message });
+    return `Content-Length: ${content.length}\r\n\r\n${content}`;
+  }
+
+  /**
+   * Parse LSP messages from stdout buffer
+   */
+  private parseMessages(buffer: string): LSPMessage[] {
+    const messages: LSPMessage[] = [];
+    let remaining = buffer;
+
+    while (remaining.length > 0) {
+      const headerMatch = remaining.match(/^Content-Length: (\d+)\r\n\r\n/);
+      if (!headerMatch) break;
+
+      const contentLength = parseInt(headerMatch[1]);
+      const headerLength = headerMatch[0].length;
+
+      if (remaining.length < headerLength + contentLength) break;
+
+      const body = remaining.slice(headerLength, headerLength + contentLength);
+      try {
+        messages.push(JSON.parse(body) as LSPMessage);
+      } catch {
+        // Skip malformed messages
+      }
+      remaining = remaining.slice(headerLength + contentLength);
+    }
+
+    return messages;
+  }
+
+  /**
+   * Execute a full LSP session: initialize, open document, send request, get response
+   */
+  private async executeSession(
+    query: string,
+    requestMethod: string,
+    requestParams: unknown
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const proc = spawn(this.lspPath, [], {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -137,6 +178,8 @@ export class LSPClient {
       let stdout = '';
       let stderr = '';
       let resolved = false;
+      let messageId = 0;
+      const finalRequestId = 3; // initialize=1, didOpen=notification, request=3
 
       const timeoutId = setTimeout(() => {
         if (!resolved) {
@@ -149,27 +192,21 @@ export class LSPClient {
       proc.stdout.on('data', (chunk) => {
         stdout += chunk.toString();
 
-        // Try to parse response
-        const match = stdout.match(/Content-Length: (\d+)\r\n\r\n([\s\S]*)/);
-        if (match) {
-          const contentLength = parseInt(match[1]);
-          const body = match[2];
-          if (body.length >= contentLength) {
-            try {
-              const response = JSON.parse(body.slice(0, contentLength)) as LSPMessage;
-              if (response.id === this.messageId) {
-                clearTimeout(timeoutId);
-                resolved = true;
-                proc.kill();
-                if (response.error) {
-                  reject(new Error(response.error.message));
-                } else {
-                  resolve(response.result);
-                }
-              }
-            } catch {
-              // Continue reading
+        // Parse all complete messages
+        const messages = this.parseMessages(stdout);
+
+        for (const msg of messages) {
+          // Look for our final request response
+          if (msg.id === finalRequestId) {
+            clearTimeout(timeoutId);
+            resolved = true;
+            proc.kill();
+            if (msg.error) {
+              reject(new Error(msg.error.message));
+            } else {
+              resolve(msg.result);
             }
+            return;
           }
         }
       });
@@ -190,55 +227,53 @@ export class LSPClient {
         if (!resolved) {
           clearTimeout(timeoutId);
           resolved = true;
-          if (code !== 0) {
-            reject(new Error(`LSP process exited with code ${code}: ${stderr}`));
-          }
+          // If we haven't got a response yet, treat as error
+          reject(new Error(`LSP process exited with code ${code} before responding: ${stderr}`));
         }
       });
 
-      // Send initialize request first
-      this.messageId++;
-      const initMessage = this.formatMessage({
-        jsonrpc: '2.0',
-        id: this.messageId,
+      const uri = 'file:///virtual/query.spq';
+
+      // Send all messages in sequence
+      // 1. Initialize request
+      messageId++;
+      proc.stdin.write(this.formatMessage({
+        id: messageId,
         method: 'initialize',
         params: {
           processId: process.pid,
           capabilities: {},
           rootUri: null,
         },
-      });
-      proc.stdin.write(initMessage);
+      }));
 
-      // Wait a bit then send the actual request
-      setTimeout(() => {
-        // Send initialized notification
-        const initializedMessage = this.formatMessage({
-          jsonrpc: '2.0',
-          method: 'initialized',
-          params: {},
-        });
-        proc.stdin.write(initializedMessage);
+      // 2. Initialized notification (no id)
+      proc.stdin.write(this.formatMessage({
+        method: 'initialized',
+        params: {},
+      }));
 
-        // Send the actual request
-        this.messageId++;
-        const requestMessage = this.formatMessage({
-          jsonrpc: '2.0',
-          id: this.messageId,
-          method,
-          params,
-        });
-        proc.stdin.write(requestMessage);
-      }, 100);
+      // 3. Open document notification (no id)
+      proc.stdin.write(this.formatMessage({
+        method: 'textDocument/didOpen',
+        params: {
+          textDocument: {
+            uri,
+            languageId: 'spq',
+            version: 1,
+            text: query,
+          },
+        },
+      }));
+
+      // 4. The actual request
+      messageId = finalRequestId;
+      proc.stdin.write(this.formatMessage({
+        id: messageId,
+        method: requestMethod,
+        params: requestParams,
+      }));
     });
-  }
-
-  /**
-   * Format a JSON-RPC message with Content-Length header
-   */
-  private formatMessage(message: LSPMessage): string {
-    const content = JSON.stringify(message);
-    return `Content-Length: ${content.length}\r\n\r\n${content}`;
   }
 
   /**
@@ -246,21 +281,8 @@ export class LSPClient {
    */
   async getCompletions(query: string, line: number, character: number): Promise<CompletionItem[]> {
     try {
-      // Create a virtual document
       const uri = 'file:///virtual/query.spq';
-
-      // Open the document
-      await this.sendRequest('textDocument/didOpen', {
-        textDocument: {
-          uri,
-          languageId: 'spq',
-          version: 1,
-          text: query,
-        },
-      });
-
-      // Request completions
-      const result = await this.sendRequest('textDocument/completion', {
+      const result = await this.executeSession(query, 'textDocument/completion', {
         textDocument: { uri },
         position: { line, character },
       });
@@ -284,17 +306,7 @@ export class LSPClient {
   async getHover(query: string, line: number, character: number): Promise<HoverResult | null> {
     try {
       const uri = 'file:///virtual/query.spq';
-
-      await this.sendRequest('textDocument/didOpen', {
-        textDocument: {
-          uri,
-          languageId: 'spq',
-          version: 1,
-          text: query,
-        },
-      });
-
-      const result = await this.sendRequest('textDocument/hover', {
+      const result = await this.executeSession(query, 'textDocument/hover', {
         textDocument: { uri },
         position: { line, character },
       });
