@@ -8,17 +8,43 @@ SuperDB queries contain lots of shell metacharacters (`|`, `{}`, `$`, quotes, et
 
 ## Installation
 
+Add to your Claude Code settings (`~/.claude/settings.json`) or project `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "superdb": {
+      "command": "npx",
+      "args": ["-y", "superdb-mcp"]
+    }
+  }
+}
+```
+
+Or install globally:
+
 ```bash
-# Clone and build
-git clone <repo-url>
+npm install -g superdb-mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "superdb": {
+      "command": "superdb-mcp"
+    }
+  }
+}
+```
+
+### From Source
+
+```bash
+git clone https://github.com/chrismo/superdb-mcp.git
 cd superdb-mcp
 npm install
 npm run build
 ```
-
-## Configuration
-
-Add to your Claude Code settings (`~/.claude/settings.json`):
 
 ```json
 {
@@ -26,19 +52,6 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
     "superdb": {
       "command": "node",
       "args": ["/path/to/superdb-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-Or add to your project's `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "superdb": {
-      "command": "node",
-      "args": ["./path/to/superdb-mcp/dist/index.js"]
     }
   }
 }
@@ -129,6 +142,18 @@ No shell escaping needed - the query string is passed directly.
 
 - Node.js 18+
 - `super` binary in PATH ([installation](https://superdb.org/getting-started/install))
+
+## Versioning
+
+SuperDB is in active pre-release development without official versioned releases. The only official builds are via [Homebrew cask](https://superdb.org/getting-started/install.html#homebrew), identified by git SHA rather than version numbers.
+
+To manage this, this repo uses pseudo-versions in the format `0.YMMDD` (last digit of year + month + day). For example, `0.51231` represents a build from 2025-12-31. See [asdf-superdb](https://github.com/chrismo/asdf-superdb) for more details on the versioning scheme.
+
+This MCP server versions to match the bundled documentation:
+- `0.51231.0` - initial release with docs for SuperDB pseudo-version 0.51231
+- `0.51231.1`, `.2`, etc. - MCP-only patches (no doc changes)
+
+The `super_info` tool reports both your runtime version and the bundled docs version, warning if they differ.
 
 ## License
 

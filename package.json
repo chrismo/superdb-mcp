@@ -1,13 +1,25 @@
 {
   "name": "superdb-mcp",
-  "version": "0.2.0",
+  "version": "0.51231.0",
   "description": "MCP server for SuperDB - execute SuperSQL queries, version detection, and embedded documentation",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "superdb-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrismo/superdb-mcp.git"
   },
   "keywords": [
     "mcp",
@@ -16,7 +28,7 @@
     "data",
     "query"
   ],
-  "author": "",
+  "author": "chrismo",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"

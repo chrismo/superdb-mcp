@@ -47,3 +47,11 @@ The server exposes two MCP resources from `docs/`:
 Tool implementations return structured result objects (e.g., `QueryResult`, `ValidateResult`) that get JSON-serialized back to the MCP client. Errors are caught and returned as `{ error: message }` with `isError: true`.
 
 The `super_validate` tool includes migration hints for common zq→SuperDB syntax changes (yield→values, over→unnest, func→fn).
+
+## Versioning
+
+MCP version tracks the bundled docs version using SuperDB pseudo-versions (`0.YMMDD` format):
+- `0.51231.0` - docs for SuperDB build from 2025-12-31
+- `0.51231.1`, `.2` - MCP-only patches
+
+When updating docs from superkit, bump the version in both `package.json` and `src/index.ts`.

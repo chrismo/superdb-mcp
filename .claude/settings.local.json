@@ -11,7 +11,9 @@
       "WebFetch(domain:github.com)",
       "mcp__superdb__super_help",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(npm pack:*)"
     ]
   },
   "enabledMcpjsonServers": [
