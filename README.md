@@ -125,6 +125,52 @@ orderBy?: string      # Sort key
 lake?: string         # Lake path
 ```
 
+### Info Tools
+
+#### `super_info`
+Get SuperDB version info, environment configuration, and compatibility status.
+
+```
+compare_to?: string   # Optional path to another super binary to compare
+```
+
+#### `super_help`
+Get SuperDB documentation (bundled expert guide or migration docs).
+
+```
+topic: string         # "expert", "upgrade", "upgrade-guide", or "migration"
+```
+
+#### `super_test_compat`
+Test a query against multiple SuperDB versions to detect breaking changes.
+
+```
+query: string         # The query to test
+versions: string[]    # Paths to different super binaries
+```
+
+### LSP Tools
+
+Require `SUPERDB_LSP_PATH` environment variable to be set.
+
+#### `super_complete`
+Get code completions for a SuperSQL query at a cursor position.
+
+```
+query: string         # The query text
+line: number          # Line number (0-based)
+character: number     # Character offset (0-based)
+```
+
+#### `super_docs`
+Get documentation for a symbol at a position in a query.
+
+```
+query: string         # The query text
+line: number          # Line number (0-based)
+character: number     # Character offset (0-based)
+```
+
 ## Example Usage
 
 With the MCP server configured, Claude can execute queries like:
