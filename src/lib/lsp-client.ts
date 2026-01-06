@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, spawnSync, ChildProcess } from 'child_process';
 
 /**
  * LSP message types
@@ -80,7 +80,6 @@ export function checkLspAvailability(): LSPAvailability {
   }
 
   try {
-    const { spawnSync } = require('child_process');
     const result = spawnSync(lspPath, ['--help'], {
       timeout: 2000,
       encoding: 'utf-8',
