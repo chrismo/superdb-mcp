@@ -187,7 +187,9 @@ No shell escaping needed - the query string is passed directly.
 ## Requirements
 
 - Node.js 18+
-- `super` binary in PATH ([installation](https://superdb.org/getting-started/install))
+- `super` binary in PATH:
+  - [Homebrew](https://superdb.org/getting-started/install.html#homebrew) (official, latest build)
+  - [asdf-superdb](https://github.com/chrismo/asdf-superdb) (community, versioned builds)
 
 ## Versioning
 
