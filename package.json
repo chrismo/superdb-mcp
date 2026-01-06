@@ -1,6 +1,6 @@
 {
   "name": "superdb-mcp",
-  "version": "0.51231.5",
+  "version": "0.51231.6",
   "description": "MCP server for SuperDB - execute SuperSQL queries, version detection, and embedded documentation",
   "type": "module",
   "main": "dist/index.js",

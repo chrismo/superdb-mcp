@@ -14,19 +14,36 @@ SuperDB release.
 
 ## Quick Reference
 
-| Category   | zq               | super                       |
-|------------|------------------|-----------------------------|
-| Keyword    | `yield`          | `values`                    |
-| Function   | `parse_zson`     | `parse_sup`                 |
-| Function   | `func`           | `fn`                        |
-| Operator   | `over`           | `unnest`                    |
-| Switch     | `-z` / `-Z`      | `-s` / `-S`                 |
-| Switch     | `-f text`        | `-f line`                   |
-| Switch     | (implicit)       | `-c` required before query  |
-| Comments   | `//`             | `--` or `/* */`             |
-| Regexp     | `/pattern/`      | `'pattern'` (string)        |
-| Cast       | `type(value)`    | `value::type`               |
-| Agg filter | `count() where x`| `count() filter (x)`        |
+This table covers ALL breaking changes. Complex items reference detailed sections below.
+
+| Category | zq | super |
+|----------|-----|-------|
+| Keyword | `yield` | `values` |
+| Function | `parse_zson` | `parse_sup` |
+| Function | `func` | `fn` |
+| Operator | `over` | `unnest` |
+| Operator def | `op name(a, b):` | `op name a, b:` |
+| Operator call | `name(x, y)` | `name x, y` |
+| Switch | `-z` / `-Z` | `-s` / `-S` |
+| Switch | `-f text` | `-f line` |
+| Switch | (implicit) | `-c` required before query |
+| Comments | `//` | `--` or `/* */` |
+| Regexp | `/pattern/` | `'pattern'` (string) |
+| Cast | `type(value)` | `value::type` |
+| Agg filter | `count() where x` | `count() filter (x)` |
+| Indexing | 1-based | 0-based (see Indexing section) |
+| Scoped unnest | `over x => (...)` | `unnest x into (...)` |
+| Unnest with | `over a with b` | `unnest {b,a}` (see section) |
+| grep | `grep(/pat/)` | `grep('pat', this)` |
+| is() | `is(<type>)` | `is(this, <type>)` |
+| nest_dotted | `nest_dotted()` | `nest_dotted(this)` |
+| Lateral subquery | `{ a: (subquery) }` | `{ a: [subquery] }` (see section) |
+| Nested FROM | `from (from x)` | `select * from (select * from x)` |
+| Streaming agg | `put x:=sum(y)` | Removed (see section) |
+| Functions | `crop/fill/fit/order/shape` | Removed — use cast |
+| Globs | `grep(foo*)` | Removed — use regex |
+| count type | returns `uint64` | returns `int64` |
+| Lake f-string | `from pool` | `from f'{pool}'` (see section) |
 
 ## CLI Changes
 

@@ -160,6 +160,10 @@ export async function superValidate(query: string): Promise<ValidateResult> {
     if (error.includes('func')) {
       suggestions.push('Did you mean "fn"? (func was renamed to fn in SuperDB)');
     }
+    // Check the original query for op with parentheses
+    if (query.match(/\bop\s+\w+\s*\(/)) {
+      suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
+    }
 
     return {
       valid: false,
