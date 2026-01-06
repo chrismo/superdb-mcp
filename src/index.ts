@@ -25,7 +25,7 @@ const docsDir = join(__dirname, '../docs');
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '0.51231.0',
+    version: '0.51231.1',
   },
   {
     capabilities: {
