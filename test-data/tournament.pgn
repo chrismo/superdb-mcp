@@ -1,0 +1,99 @@
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.15"]
+[Round "1"]
+[White "Giri, Anish"]
+[Black "Gukesh, D"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O 1-0
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.15"]
+[Round "1"]
+[White "Wei, Yi"]
+[Black "Abdusattorov, Nodirbek"]
+[Result "1/2-1/2"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 1/2-1/2
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.16"]
+[Round "2"]
+[White "Gukesh, D"]
+[Black "Wei, Yi"]
+[Result "0-1"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 0-1
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.16"]
+[Round "2"]
+[White "Abdusattorov, Nodirbek"]
+[Black "Giri, Anish"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 1-0
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.17"]
+[Round "3"]
+[White "Giri, Anish"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 1/2-1/2
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.17"]
+[Round "3"]
+[White "Gukesh, D"]
+[Black "Abdusattorov, Nodirbek"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 1-0
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.18"]
+[Round "TB1"]
+[White "Gukesh, D"]
+[Black "Giri, Anish"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 1-0
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.18"]
+[Round "TB1"]
+[White "Wei, Yi"]
+[Black "Abdusattorov, Nodirbek"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 b6 0-1
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.18"]
+[Round "TB2"]
+[White "Giri, Anish"]
+[Black "Gukesh, D"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 0-1
+
+[Event "Test Masters 2024"]
+[Site "Amsterdam"]
+[Date "2024.01.18"]
+[Round "TB2"]
+[White "Abdusattorov, Nodirbek"]
+[Black "Wei, Yi"]
+[Result "1-0"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 1-0

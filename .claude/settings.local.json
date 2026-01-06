@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(super --help:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(super -j -c \"aggregate sum:=sum\\(a\\)\" -)",
+      "mcp__superdb__super_query",
+      "mcp__superdb__super_schema",
+      "mcp__superdb__super_info",
+      "WebFetch(domain:github.com)",
+      "mcp__superdb__super_help",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "superdb"
+  ]
+}
