@@ -1,10 +1,16 @@
 # SuperDB MCP Server
 
-An MCP (Model Context Protocol) server for [SuperDB](https://superdb.org/) that enables AI assistants to execute SuperSQL queries without shell escaping issues.
+An MCP (Model Context Protocol) server for [SuperDB](https://superdb.org/) that
+enables AI assistants to better compose SuperSQL queries, optionally backed by
+an LSP.
 
-## Why?
+## About
 
-SuperDB queries contain lots of shell metacharacters (`|`, `{}`, `$`, quotes, etc.) that cause escaping nightmares when passed through bash. This MCP server bypasses the shell entirely - Claude sends clean JSON parameters, and the server handles subprocess execution properly.
+[SuperDB](https://superdb.org/) is the successor to
+[zq](https://www.brimdata.io/blog/introducing-zq/) from [Brim
+Data](https://www.brimdata.io/). As of Jan 2026, it is still in pre-release with
+limited public documentation, so LLMs have little knowledge of its syntax. This
+MCP server provides the context AI assistants need to write correct queries.
 
 ## Installation
 
@@ -193,9 +199,16 @@ No shell escaping needed - the query string is passed directly.
 
 ## Versioning
 
-SuperDB is in active pre-release development without official versioned releases. The only official builds are via [Homebrew cask](https://superdb.org/getting-started/install.html#homebrew), identified by git SHA rather than version numbers.
+SuperDB is in active pre-release development without official versioned
+releases. The only official builds are via [Homebrew
+cask](https://superdb.org/getting-started/install.html#homebrew), identified by
+git SHA rather than version numbers.
 
-To manage this, this repo uses pseudo-versions in the format `0.YMMDD` (last digit of year + month + day). For example, `0.51231` represents a build from 2025-12-31. See [asdf-superdb](https://github.com/chrismo/asdf-superdb) for more details on the versioning scheme.
+To manage this, this repo uses pseudo-versions in the format `0.YMMDD` (last
+digit of year + month + day). For example, `0.51231` represents a build from
+2025-12-31. See
+[asdf-superdb](https://github.com/chrismo/asdf-superdb/blob/main/README.md#about)
+for more details on the versioning scheme.
 
 This MCP server versions to match the bundled documentation:
 - `0.51231.0` - initial release with docs for SuperDB pseudo-version 0.51231
@@ -205,4 +218,4 @@ The `super_info` tool reports both your runtime version and the bundled docs ver
 
 ## License
 
-MIT
+BSD 3-Clause License
