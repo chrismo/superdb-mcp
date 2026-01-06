@@ -134,10 +134,17 @@ lake?: string         # Lake path
 ### Info Tools
 
 #### `super_info`
-Get SuperDB version info, environment configuration, and compatibility status.
+Get SuperDB version info, environment configuration, LSP availability, and installation instructions.
 
 ```
 compare_to?: string   # Optional path to another super binary to compare
+```
+
+#### `super_lsp_status`
+Check if the SuperDB LSP is installed and get installation instructions if not.
+
+```
+# No parameters - returns availability status and setup instructions
 ```
 
 #### `super_help`

@@ -66,6 +66,62 @@ export interface CompatTestResult {
   error: string | null;
 }
 
+export interface LspStatusResult {
+  available: boolean;
+  path: string | null;
+  setup: LspSetup | null;
+}
+
+/**
+ * Get LSP availability status and installation instructions
+ */
+export function superLspStatus(): LspStatusResult {
+  const lspPath = process.env.SUPERDB_LSP_PATH || null;
+  let available = false;
+
+  if (lspPath) {
+    try {
+      const result = spawnSync(lspPath, ['--version'], { timeout: 2000, encoding: 'utf-8' });
+      available = result.status === 0;
+    } catch {
+      available = false;
+    }
+  }
+
+  const setup: LspSetup | null = available
+    ? null
+    : {
+        recommendation: 'Install SuperDB LSP for enhanced query assistance',
+        benefits: [
+          'Better query suggestions via code completions',
+          'Function and keyword documentation lookup',
+          'Enhanced error diagnostics with fix suggestions',
+        ],
+        releases_url: 'https://github.com/chrismo/superdb-lsp/releases',
+        platforms: {
+          'macOS (Apple Silicon)': 'superdb-lsp-darwin-arm64',
+          'macOS (Intel)': 'superdb-lsp-darwin-amd64',
+          'Linux (x64)': 'superdb-lsp-linux-amd64',
+          'Linux (ARM64)': 'superdb-lsp-linux-arm64',
+          'Windows (x64)': 'superdb-lsp-windows-amd64.exe',
+        },
+        install_steps: [
+          'Download the appropriate binary for your platform from the releases page',
+          'Make it executable: chmod +x superdb-lsp-*',
+          'Move it to a location in your PATH or note its full path',
+          'Set the environment variable: export SUPERDB_LSP_PATH=/path/to/superdb-lsp',
+          'Add the export to your shell profile (~/.bashrc, ~/.zshrc, etc.) for persistence',
+        ],
+        env_var: 'SUPERDB_LSP_PATH',
+      };
+
+  return {
+    available,
+    path: lspPath,
+    setup,
+  };
+}
+
 /**
  * Get SuperDB version and environment info
  */

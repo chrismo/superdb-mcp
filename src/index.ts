@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 import { superQuery, superValidate, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
-import { superInfo, superCompare, superHelp, superTestCompat } from './tools/info.js';
+import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
 import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
 
 // Get docs directory path
@@ -25,7 +25,7 @@ const docsDir = join(__dirname, '../docs');
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '0.51231.1',
+    version: '0.51231.2',
   },
   {
     capabilities: {
@@ -55,7 +55,7 @@ const resources = [
 const tools = [
   {
     name: 'super_info',
-    description: 'Get SuperDB version info, environment configuration, and compatibility status. Use SUPER_PATH env var to configure which super binary to use.',
+    description: 'Get SuperDB version info, environment configuration, LSP availability, and installation instructions. Call this to check setup status or learn how to install the optional LSP for enhanced query assistance.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -64,6 +64,14 @@ const tools = [
           description: 'Optional path to another super binary to compare versions',
         },
       },
+    },
+  },
+  {
+    name: 'super_lsp_status',
+    description: 'Check if the SuperDB LSP is installed and get installation instructions if not. The LSP enables code completions and documentation lookup for SuperSQL queries.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
     },
   },
   {
@@ -413,6 +421,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'super_info': {
         const result = superInfo(args?.compare_to as string | undefined);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case 'super_lsp_status': {
+        const result = superLspStatus();
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
