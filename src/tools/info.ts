@@ -11,10 +11,21 @@ import {
 } from '../lib/version.js';
 import { runSuper } from '../lib/super.js';
 
-// Get docs directory path
+// Get paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const docsDir = join(__dirname, '../../docs');
+const packageJsonPath = join(__dirname, '../../package.json');
+
+// Read MCP version from package.json
+function getMcpVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return pkg.version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 export interface LspSetup {
   recommendation: string;
@@ -27,6 +38,7 @@ export interface LspSetup {
 
 export interface InfoResult {
   success: boolean;
+  mcp_version: string;
   runtime: VersionInfo;
   docs_version: string;
   lsp_available: boolean;
@@ -172,6 +184,7 @@ export function superInfo(compareTo?: string): InfoResult {
 
     return {
       success: true,
+      mcp_version: getMcpVersion(),
       runtime,
       docs_version: compatibility.docs,
       lsp_available: lspAvailable,
@@ -186,6 +199,7 @@ export function superInfo(compareTo?: string): InfoResult {
   } catch (e) {
     return {
       success: false,
+      mcp_version: getMcpVersion(),
       runtime: {
         version: 'unknown',
         raw: '',
