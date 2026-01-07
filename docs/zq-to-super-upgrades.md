@@ -2,7 +2,7 @@
 name: zq-to-super-upgrades
 description: "Migration guide from zq to SuperDB. Covers all breaking changes and syntax updates."
 superdb_version: "0.51231"
-last_updated: "2026-01-05"
+last_updated: "2026-01-06"
 source: "https://github.com/chrismo/superkit/blob/main/doc/zq-to-super-upgrades.md"
 ---
 
@@ -16,34 +16,34 @@ SuperDB release.
 
 This table covers ALL breaking changes. Complex items reference detailed sections below.
 
-| Category | zq | super |
-|----------|-----|-------|
-| Keyword | `yield` | `values` |
-| Function | `parse_zson` | `parse_sup` |
-| Function | `func` | `fn` |
-| Operator | `over` | `unnest` |
-| Operator def | `op name(a, b):` | `op name a, b:` |
-| Operator call | `name(x, y)` | `name x, y` |
-| Switch | `-z` / `-Z` | `-s` / `-S` |
-| Switch | `-f text` | `-f line` |
-| Switch | (implicit) | `-c` required before query |
-| Comments | `//` | `--` or `/* */` |
-| Regexp | `/pattern/` | `'pattern'` (string) |
-| Cast | `type(value)` | `value::type` |
-| Agg filter | `count() where x` | `count() filter (x)` |
-| Indexing | 1-based | 0-based (see Indexing section) |
-| Scoped unnest | `over x => (...)` | `unnest x into (...)` |
-| Unnest with | `over a with b` | `unnest {b,a}` (see section) |
-| grep | `grep(/pat/)` | `grep('pat', this)` |
-| is() | `is(<type>)` | `is(this, <type>)` |
-| nest_dotted | `nest_dotted()` | `nest_dotted(this)` |
-| Lateral subquery | `{ a: (subquery) }` | `{ a: [subquery] }` (see section) |
-| Nested FROM | `from (from x)` | `select * from (select * from x)` |
-| Streaming agg | `put x:=sum(y)` | Removed (see section) |
-| Functions | `crop/fill/fit/order/shape` | Removed — use cast |
-| Globs | `grep(foo*)` | Removed — use regex |
-| count type | returns `uint64` | returns `int64` |
-| Lake f-string | `from pool` | `from f'{pool}'` (see section) |
+| Category         | zq                          | super                                    |
+|------------------|-----------------------------|------------------------------------------|
+| Keyword          | `yield`                     | `values`                                 |
+| Function         | `parse_zson`                | `parse_sup`                              |
+| Function         | `func`                      | `fn`                                     |
+| Operator         | `over`                      | `unnest`                                 |
+| Operator def     | `op name(a, b):`            | `op name a, b:`                          |
+| Operator call    | `name(x, y)`                | `name x, y`                              |
+| Switch           | `-z` / `-Z`                 | `-s` / `-S`                              |
+| Switch           | `-f text`                   | `-f line`                                |
+| Switch           | (implicit)                  | `-c` required before query               |
+| Comments         | `//`                        | `--` or `/* */`                          |
+| Regexp           | `/pattern/`                 | `'pattern'` (string)                     |
+| Cast             | `type(value)`               | `value::type`                            |
+| Agg filter       | `count() where x`           | `count() filter (x)`                     |
+| Indexing         | 0-based                     | 0-based & 1-based (see Indexing section) |
+| Scoped unnest    | `over x => (...)`           | `unnest x into (...)`                    |
+| Unnest with      | `over a with b`             | `unnest {b,a}` (see section)             |
+| grep             | `grep(/pat/)`               | `grep('pat', this)`                      |
+| is()             | `is(<type>)`                | `is(this, <type>)`                       |
+| nest_dotted      | `nest_dotted()`             | `nest_dotted(this)`                      |
+| Lateral subquery | `{ a: (subquery) }`         | `{ a: [subquery] }` (see section)        |
+| Nested FROM      | `from (from x)`             | `select * from (select * from x)`        |
+| Streaming agg    | `put x:=sum(y)`             | Removed (see section)                    |
+| Functions        | `crop/fill/fit/order/shape` | Removed — use cast                       |
+| Globs            | `grep(foo*)`                | Removed — use regex                      |
+| count type       | returns `uint64`            | returns `int64`                          |
+| Lake f-string    | `from pool`                 | `from f'{pool}'` (see section)           |
 
 ## CLI Changes
 
@@ -133,6 +133,8 @@ super -c 'parse_sup(s)'
 
 ### func → fn
 
+As of [commit aab15e0d](https://github.com/brimdata/super/commit/aab15e0d):
+
 ```bash
 -- OLD
 func double(x): ( x * 2 )
@@ -157,6 +159,7 @@ super -c 'values [1,2,3] | unnest this'
 
 ### Indexing is 0-based (with pragma for 1-based)
 
+As of [PR 6348](https://github.com/brimdata/super/pull/6348) on Nov 10, 2025,
 0-based indexing is the default. Use `pragma index_base = 1` for SQL-style
 1-based indexing when needed.
 
@@ -198,6 +201,7 @@ be just `a` in zq, but now `this` is the record `{b,a}` in super.
 
 ### grep requires explicit `this` argument
 
+As of [PR 6115](https://github.com/brimdata/super/pull/6115) on Aug 15, 2025:
 - Inline regexp (`/.../`) syntax removed — use strings
 - Globs no longer supported in grep
 - `this` must be passed explicitly
@@ -214,6 +218,8 @@ super -s -c "values ['a','b'] | grep('b', this)"
 
 ### is and nest_dotted require explicit `this`
 
+As of [commit 5075037c](https://github.com/brimdata/super/commit/5075037c) on Aug 27, 2025:
+
 ```bash
 -- OLD (no longer works)
 zq -z "yield 2 | is(<int64>)"
@@ -225,6 +231,8 @@ super -s -c "values 2 | is(this, <int64>)"
 `nest_dotted` follows the same pattern.
 
 ### Cast syntax changes
+
+As of [commit ec1c5eee](https://github.com/brimdata/super/commit/ec1c5eee) on Aug 28, 2025:
 
 Function-style casting (`type(value)`) is no longer supported. Use `::` casting:
 
@@ -241,7 +249,12 @@ Alternative syntaxes (legal but not preferred):
 - `cast(value, <type>)`
 - `CAST(value AS type)`
 
+As of 0.51029, `::` cast and `CAST AS` only accept types, not expressions.
+
 ### Lateral subqueries require array wrapping
+
+As of [PR 6100](https://github.com/brimdata/super/pull/6100) and
+[PR 6243](https://github.com/brimdata/super/pull/6243):
 
 Lateral subqueries that produce multiple values must be wrapped in `[...]`:
 
@@ -256,6 +269,8 @@ super -s -c "[3,2,1] | { a: [unnest this | values this] }"
 ```
 
 ### User-defined operator syntax
+
+As of [PR 6181](https://github.com/brimdata/super/pull/6181) on Sep 2, 2025:
 
 **Declaration:** Remove parentheses around parameters.
 
@@ -280,6 +295,8 @@ myop x, y
 
 ### FROM vs from separation
 
+As of [PR 6405](https://github.com/brimdata/super/pull/6405) on Dec 1, 2025:
+
 Pipe-operator `from` and SQL `FROM` clause are now distinct. Relational FROM
 requires a SELECT clause:
 
@@ -292,6 +309,8 @@ super -c 'select * from ( select * from a )'
 ```
 
 ### Aggregate filter clause
+
+As of [PR 6465](https://github.com/brimdata/super/pull/6465) on Dec 23, 2025:
 
 The `where` clause on aggregates changed to SQL-standard `filter`:
 
@@ -307,7 +326,8 @@ count() filter (grep('bar', this))
 
 ### Streaming aggregation functions
 
-Per-record cumulative aggregations are removed.
+As of [PR 6355](https://github.com/brimdata/super/pull/6355), per-record
+cumulative aggregations are removed.
 
 **Row numbering** — use the `count` operator:
 
@@ -340,7 +360,7 @@ Grouped aggregation (`collect(x) by key`) still works.
 ### Removed functions
 
 The functions `crop()`, `fill()`, `fit()`, `order()`, and `shape()` have been
-removed. Use cast instead — see Cast syntax changes.
+removed. Use cast instead — see [Cast syntax changes](#cast-syntax-changes).
 
 ### Inline regexp syntax
 
@@ -353,6 +373,10 @@ Globs are no longer supported in the `grep` function. Use regex patterns.
 ## Type Changes
 
 ### Count functions return int64
+
+As of Dec 24-29, 2025 ([PR 6466](https://github.com/brimdata/super/pull/6466),
+[PR 6467](https://github.com/brimdata/super/pull/6467),
+[PR 6472](https://github.com/brimdata/super/pull/6472)):
 
 These now return `int64` instead of `uint64`:
 - `count()` function
@@ -373,6 +397,8 @@ super -s -c "values 1,2,3 | aggregate cnt:=count() | typeof(cnt)"
 ## Advanced/Lake Features
 
 ### Robot from f-string syntax
+
+As of [PR 6450](https://github.com/brimdata/super/pull/6450) on Dec 16, 2025:
 
 Dynamic data source specification now uses f-string syntax. This is primarily
 relevant when using SuperDB with a lake (database):
