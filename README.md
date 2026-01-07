@@ -14,6 +14,21 @@ MCP server provides the context AI assistants need to write correct queries.
 
 ## Installation
 
+### Claude Code CLI
+
+```bash
+# Install for current project only
+claude mcp add superdb -- npx -y superdb-mcp@latest
+
+# Install for all projects (user scope)
+claude mcp add --scope user superdb -- npx -y superdb-mcp@latest
+```
+
+Using `@latest` auto-upgrades the MCP server on each Claude launch. To pin a
+specific version, replace `@latest` with a version number (e.g., `@0.51231.6`).
+
+### Manual Configuration
+
 Add to your Claude Code settings (`~/.claude/settings.json`) or project `.mcp.json`:
 
 ```json
@@ -21,7 +36,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`) or project `.mcp.js
   "mcpServers": {
     "superdb": {
       "command": "npx",
-      "args": ["-y", "superdb-mcp"]
+      "args": ["-y", "superdb-mcp@latest"]
     }
   }
 }
