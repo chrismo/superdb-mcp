@@ -126,7 +126,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
  * Includes position diagnostics and migration suggestions for common errors
  */
 export async function superValidate(query: string): Promise<ValidateResult> {
-  const result = await runSuper(['compile', '-C', query]);
+  const result = await runSuper(['compile', '-c', query]);
 
   const diagnostics: ValidateDiagnostic[] = [];
   const suggestions: string[] = [];
