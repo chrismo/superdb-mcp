@@ -1,7 +1,7 @@
 ---
 name: superdb-expert
 description: "Expert guide for SuperDB queries and data transformations. Covers syntax, patterns, and best practices."
-superdb_version: "0.51231"
+superdb_version: "0.1.0"
 last_updated: "2026-01-31"
 source: "https://github.com/chrismo/superkit/blob/main/doc/superdb-expert.md"
 ---
