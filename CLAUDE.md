@@ -46,6 +46,8 @@ The server exposes two MCP resources from `docs/`:
 - `superdb://docs/expert` → `docs/superdb-expert.md` (query syntax guide)
 - `superdb://docs/upgrade-guide` → `docs/zq-to-super-upgrades.md` (migration guide)
 
+The authoritative source for these docs is [superkit](https://github.com/chrismo/superkit/tree/main/doc). Local copies are bundled so they ship with the npm package. Use `/sync` to pull the latest from superkit.
+
 ### Environment Variables
 
 - `SUPER_PATH` - Path to super binary (default: `super` from PATH)
