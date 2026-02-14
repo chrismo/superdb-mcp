@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { superValidate } from '../tools/query.js';
+import { superQuery } from '../tools/query.js';
 import { runSuper } from '../lib/super.js';
 
 // Check if super binary is available
@@ -14,42 +14,38 @@ beforeAll(async () => {
   }
 });
 
-describe('superValidate', () => {
-  it.skipIf(() => !superAvailable)('rejects gibberish syntax', async () => {
-    const result = await superValidate('this is not valid syntax at all!!!');
-    expect(result.valid).toBe(false);
+describe('superQuery migration hints', () => {
+  it.skipIf(() => !superAvailable)('suggests "values" when query uses "yield"', async () => {
+    const result = await superQuery({ query: 'yield 1' });
+    expect(result.success).toBe(false);
+    expect(result.suggestions).toBeDefined();
+    expect(result.suggestions!.some(s => s.includes('values'))).toBe(true);
+  });
+
+  it.skipIf(() => !superAvailable)('suggests "unnest" when query uses "over"', async () => {
+    const result = await superQuery({ query: 'over this' });
+    expect(result.success).toBe(false);
+    expect(result.suggestions).toBeDefined();
+    expect(result.suggestions!.some(s => s.includes('unnest'))).toBe(true);
+  });
+
+  it.skipIf(() => !superAvailable)('suggests "fn" when query uses "func"', async () => {
+    const result = await superQuery({ query: 'func add(a, b): (a + b)' });
+    expect(result.success).toBe(false);
+    expect(result.suggestions).toBeDefined();
+    expect(result.suggestions!.some(s => s.includes('fn'))).toBe(true);
+  });
+
+  it.skipIf(() => !superAvailable)('returns no suggestions for valid queries', async () => {
+    const result = await superQuery({ query: 'values 1', data: '' });
+    expect(result.success).toBe(true);
+    expect(result.suggestions).toBeUndefined();
+  });
+
+  it.skipIf(() => !superAvailable)('returns no suggestions for unrelated errors', async () => {
+    const result = await superQuery({ query: 'this is not valid syntax at all!!!' });
+    expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
-  });
-
-  it.skipIf(() => !superAvailable)('rejects old "over" syntax', async () => {
-    const result = await superValidate('over this');
-    expect(result.valid).toBe(false);
-    expect(result.suggestions.some(s => s.includes('unnest'))).toBe(true);
-  });
-
-  it.skipIf(() => !superAvailable)('rejects old "yield" syntax', async () => {
-    const result = await superValidate('yield 1');
-    expect(result.valid).toBe(false);
-    expect(result.suggestions.some(s => s.includes('values'))).toBe(true);
-  });
-
-  it.skipIf(() => !superAvailable)('accepts valid SuperDB syntax', async () => {
-    const result = await superValidate('values 1');
-    expect(result.valid).toBe(true);
-    expect(result.error).toBeNull();
-  });
-
-  it.skipIf(() => !superAvailable)('accepts valid unnest syntax', async () => {
-    const result = await superValidate('unnest this');
-    expect(result.valid).toBe(true);
-    expect(result.error).toBeNull();
-  });
-
-  it.skipIf(() => !superAvailable)('provides line/column info on parse errors', async () => {
-    const result = await superValidate('values {incomplete:');
-    expect(result.valid).toBe(false);
-    expect(result.diagnostics.length).toBeGreaterThan(0);
-    expect(result.diagnostics[0]).toHaveProperty('line');
-    expect(result.diagnostics[0]).toHaveProperty('character');
+    expect(result.suggestions).toBeUndefined();
   });
 });

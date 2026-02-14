@@ -82,7 +82,8 @@ npm run build
 ### Query Tools
 
 #### `super_query`
-Execute a SuperSQL query on data files.
+Execute a SuperSQL query on data files. On errors, includes migration hints for
+common zq-to-SuperDB syntax changes (yield→values, over→unnest, func→fn, etc.).
 
 ```
 query: string         # Required: The SuperSQL query
@@ -90,13 +91,6 @@ files?: string[]      # File paths to query
 data?: string         # Inline data (alternative to files)
 format?: string       # Output: json (default), sup, csv, table
 inputFormat?: string  # Force input format
-```
-
-#### `super_validate`
-Validate query syntax without executing.
-
-```
-query: string         # The query to validate
 ```
 
 #### `super_schema`

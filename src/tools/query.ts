@@ -14,20 +14,7 @@ export interface QueryResult {
   rowCount: number;
   raw?: string;
   error: string | null;
-}
-
-export interface ValidateDiagnostic {
-  line: number;
-  character: number;
-  message: string;
-  severity: 'error' | 'warning' | 'info' | 'hint';
-}
-
-export interface ValidateResult {
-  valid: boolean;
-  error: string | null;
-  diagnostics: ValidateDiagnostic[];
-  suggestions: string[];
+  suggestions?: string[];
 }
 
 export interface ShapeInfo {
@@ -82,11 +69,31 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
   const result = await runSuper(args, data);
 
   if (result.exitCode !== 0) {
+    const error = result.stderr.trim() || 'Query failed with no error message';
+    const suggestions: string[] = [];
+
+    if (error.includes('yield')) {
+      suggestions.push('Did you mean "values"? (yield was renamed to values in SuperDB)');
+    }
+    if (error.includes('over')) {
+      suggestions.push('Did you mean "unnest"? (over was renamed to unnest in SuperDB)');
+    }
+    if (error.match(/\/.*\//)) {
+      suggestions.push('Inline regex /pattern/ is not supported. Use string patterns: \'pattern\'');
+    }
+    if (error.includes('func')) {
+      suggestions.push('Did you mean "fn"? (func was renamed to fn in SuperDB)');
+    }
+    if (query.match(/\bop\s+\w+\s*\(/)) {
+      suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
+    }
+
     return {
       success: false,
       data: null,
       rowCount: 0,
-      error: result.stderr.trim() || 'Query failed with no error message',
+      error,
+      ...(suggestions.length > 0 && { suggestions }),
     };
   }
 
@@ -119,66 +126,6 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
       error: null,
     };
   }
-}
-
-/**
- * Validate query syntax without executing
- * Includes position diagnostics and migration suggestions for common errors
- */
-export async function superValidate(query: string): Promise<ValidateResult> {
-  const result = await runSuper(['compile', '-c', query]);
-
-  const diagnostics: ValidateDiagnostic[] = [];
-  const suggestions: string[] = [];
-
-  if (result.exitCode !== 0) {
-    const error = result.stderr.trim() || result.stdout.trim();
-
-    // Parse error position from message
-    // Format: "parse error at line X, column Y:\n..."
-    const posMatch = error.match(/at line (\d+), column (\d+)/);
-    const line = posMatch ? parseInt(posMatch[1]) - 1 : 0;
-    const character = posMatch ? parseInt(posMatch[2]) - 1 : 0;
-
-    diagnostics.push({
-      line,
-      character,
-      message: error,
-      severity: 'error',
-    });
-
-    // Add migration suggestions based on error patterns
-    if (error.includes('yield')) {
-      suggestions.push('Did you mean "values"? (yield was renamed to values in SuperDB)');
-    }
-    if (error.includes('over')) {
-      suggestions.push('Did you mean "unnest"? (over was renamed to unnest in SuperDB)');
-    }
-    if (error.match(/\/.*\//)) {
-      suggestions.push('Inline regex /pattern/ is not supported. Use string patterns: \'pattern\'');
-    }
-    if (error.includes('func')) {
-      suggestions.push('Did you mean "fn"? (func was renamed to fn in SuperDB)');
-    }
-    // Check the original query for op with parentheses
-    if (query.match(/\bop\s+\w+\s*\(/)) {
-      suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
-    }
-
-    return {
-      valid: false,
-      error,
-      diagnostics,
-      suggestions,
-    };
-  }
-
-  return {
-    valid: true,
-    error: null,
-    diagnostics,
-    suggestions,
-  };
 }
 
 /**

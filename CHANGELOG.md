@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Removed `super_validate` tool; migration hints now appear in `super_query` error responses
+- `super_query` errors include a `suggestions` field with zq→SuperDB migration hints when applicable
+
 ## [1.0.0] - 2026-02-14
 
 ### Changed

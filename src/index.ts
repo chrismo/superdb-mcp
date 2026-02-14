@@ -12,7 +12,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-import { superQuery, superValidate, superSchema } from './tools/query.js';
+import { superQuery, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
 import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
 import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
@@ -116,20 +116,6 @@ const tools = [
         inputFormat: {
           type: 'string',
           description: 'Force input format if auto-detection fails',
-        },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'super_validate',
-    description: 'Validate SuperSQL query syntax without executing. Returns diagnostics with position info and migration suggestions for common zq-to-SuperDB errors.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        query: {
-          type: 'string',
-          description: 'The SuperSQL query to validate',
         },
       },
       required: ['query'],
@@ -358,13 +344,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           format: args?.format as 'json' | 'sup' | 'csv' | 'table' | undefined,
           inputFormat: args?.inputFormat as string | undefined,
         });
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-      }
-
-      case 'super_validate': {
-        const result = await superValidate(args?.query as string);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };

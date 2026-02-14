@@ -35,7 +35,7 @@ This is an MCP (Model Context Protocol) server that wraps the SuperDB `super` bi
 
 ### Tool Implementations
 
-- **`src/tools/query.ts`** - `super_query`, `super_validate`, `super_schema` - file-based query operations
+- **`src/tools/query.ts`** - `super_query`, `super_schema` - file-based query operations
 - **`src/tools/db.ts`** - `super_db_*` tools for database pool operations
 - **`src/tools/info.ts`** - `super_info`, `super_help`, `super_test_compat` - version/docs/compatibility
 - **`src/tools/lsp.ts`** - `super_complete`, `super_docs` - LSP-powered code intelligence
@@ -55,9 +55,9 @@ The authoritative source for these docs is [superkit](https://github.com/chrismo
 
 ## Key Patterns
 
-Tool implementations return structured result objects (e.g., `QueryResult`, `ValidateResult`) that get JSON-serialized back to the MCP client. Errors are caught and returned as `{ error: message }` with `isError: true`.
+Tool implementations return structured result objects (e.g., `QueryResult`) that get JSON-serialized back to the MCP client. Errors are caught and returned as `{ error: message }` with `isError: true`.
 
-The `super_validate` tool includes migration hints for common zq→SuperDB syntax changes (yield→values, over→unnest, func→fn).
+`superQuery` error responses include migration hints for common zq→SuperDB syntax changes (yield→values, over→unnest, func→fn) in a `suggestions` field.
 
 ## Versioning
 
