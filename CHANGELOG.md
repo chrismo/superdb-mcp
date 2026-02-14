@@ -2,14 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-Version format: `0.YMMDD.patch` where YMMDD matches the SuperDB pseudo-version
-of bundled docs. See [README](/README.md#versioning) for details.
-
 ## [0.1.0] - 2026-01-31
 
 ### Changed
-- Version bump to match official SuperDB v0.1.0 release
+- Version aligned with official SuperDB v0.1.0 release
 - Synced docs from superkit
+- Updated README to reflect official release status
+- Fixed `super_validate` using wrong flag case (`-C` → `-c`)
 
 ## [0.51231.1] - 2025-01-05
 

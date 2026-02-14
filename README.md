@@ -8,9 +8,8 @@ an LSP.
 
 [SuperDB](https://superdb.org/) is the successor to
 [zq](https://www.brimdata.io/blog/introducing-zq/) from [Brim
-Data](https://www.brimdata.io/). As of Jan 2026, it is still in pre-release with
-limited public documentation, so LLMs have little knowledge of its syntax. This
-MCP server provides the context AI assistants need to write correct queries.
+Data](https://www.brimdata.io/). LLMs have limited knowledge of its syntax, so
+this MCP server provides the context AI assistants need to write correct queries.
 
 ## Installation
 
@@ -25,7 +24,7 @@ claude mcp add --scope user superdb -- npx -y superdb-mcp@latest
 ```
 
 Using `@latest` auto-upgrades the MCP server on each Claude launch. To pin a
-specific version, replace `@latest` with a version number (e.g., `@0.51231.6`).
+specific version, replace `@latest` with a version number (e.g., `@0.1.0`).
 
 ### Manual Configuration
 
@@ -221,22 +220,9 @@ No shell escaping needed - the query string is passed directly.
 
 ## Versioning
 
-SuperDB is in active pre-release development without official versioned
-releases. The only official builds are via [Homebrew
-cask](https://superdb.org/getting-started/install.html#homebrew), identified by
-git SHA rather than version numbers.
-
-To manage this, this repo uses pseudo-versions in the format `0.YMMDD` (last
-digit of year + month + day). For example, `0.51231` represents a build from
-2025-12-31. See
-[asdf-superdb](https://github.com/chrismo/asdf-superdb/blob/main/README.md#about)
-for more details on the versioning scheme.
-
-This MCP server versions to match the bundled documentation:
-- `0.51231.0` - initial release with docs for SuperDB pseudo-version 0.51231
-- `0.51231.1`, `.2`, etc. - MCP-only patches (no doc changes)
-
-The `super_info` tool reports both your runtime version and the bundled docs version, warning if they differ.
+This MCP server versions to match the SuperDB release it targets. The
+`super_info` tool reports both your runtime version and the bundled docs
+version, warning if they differ.
 
 ## License
 
