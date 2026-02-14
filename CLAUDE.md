@@ -11,7 +11,16 @@ npm run dev          # Watch mode for development
 npm start            # Run the MCP server
 ```
 
-No test framework is currently configured.
+## Testing
+
+Uses [Vitest](https://vitest.dev/) with globals enabled.
+
+```bash
+npm test             # Run tests once
+npm run test:watch   # Watch mode
+```
+
+Tests live in `src/__tests__/`. Tests that require the `super` binary use `it.skipIf()` to skip gracefully when the binary is unavailable.
 
 ## Architecture
 
