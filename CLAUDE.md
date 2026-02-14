@@ -59,8 +59,45 @@ The `super_validate` tool includes migration hints for common zq→SuperDB synta
 
 ## Versioning
 
-MCP version tracks the bundled docs version using SuperDB pseudo-versions (`0.YMMDD` format):
-- `0.51231.0` - docs for SuperDB build from 2025-12-31
-- `0.51231.1`, `.2` - MCP-only patches
+The MCP server uses its own independent semver, decoupled from SuperDB's version. The SuperDB version it targets is tracked in metadata (e.g., `super_info` output and docs), not in the package version itself.
 
-When updating docs from superkit, bump the version in both `package.json` and `src/index.ts`.
+When bumping version, update both `package.json` and `src/index.ts`.
+
+### History
+
+Early releases used SuperDB pseudo-versions (`0.YMMDD` format, e.g., `0.51231.0`). Starting with `0.1.0`, the MCP version was briefly aligned with SuperDB's official release. Going forward, versions are fully decoupled.
+
+## Publishing
+
+Published to npm as `superdb-mcp`. Users install via:
+```json
+{
+  "mcpServers": {
+    "superdb": {
+      "command": "npx",
+      "args": ["superdb-mcp"]
+    }
+  }
+}
+```
+
+### Release steps
+
+1. Update version in `package.json` and `src/index.ts`
+2. Update `CHANGELOG.md` with the new version and changes
+3. Build and test:
+   ```bash
+   npm run build && npm test
+   ```
+4. Commit, tag, and push:
+   ```bash
+   git add -A
+   git commit -m "Bump version to X.Y.Z"
+   git tag vX.Y.Z
+   git push && git push --tags
+   ```
+5. Publish:
+   ```bash
+   npm publish
+   ```
+   (`prepublishOnly` runs the build automatically)
