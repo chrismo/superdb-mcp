@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-02-14
+
+### Changed
+- Switched to decoupled semver (independent from SuperDB version)
+- Bumped to 1.0.0 to supersede old pseudo-version scheme (0.51231.x)
+- Excluded test files from published build
+- Added publishing workflow docs to CLAUDE.md
+
 ## [0.1.0] - 2026-01-31
 
 ### Changed
