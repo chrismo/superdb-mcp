@@ -227,7 +227,7 @@ export function compareVersionInfo(
 export function getDocsVersion(): string {
   // This would read from the bundled docs
   // For now, return the version we embedded
-  return '0.51231';
+  return '0.1.0';
 }
 
 /**
