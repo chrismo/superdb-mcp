@@ -4,6 +4,21 @@ An MCP (Model Context Protocol) server for [SuperDB](https://superdb.org/) that
 enables AI assistants to better compose SuperSQL queries, optionally backed by
 an LSP.
 
+## Table of Contents
+
+- [About](#about)
+- [Installation](#installation)
+  - [LSP (Optional)](#lsp-optional)
+- [Tools](#tools)
+  - [Query & Data](#query--data)
+  - [Database (Lake)](#database-lake)
+  - [Documentation & Reference](#documentation--reference)
+  - [Environment & Diagnostics](#environment--diagnostics)
+  - [LSP Tools](#lsp-tools)
+- [Example Usage](#example-usage)
+- [Requirements](#requirements)
+- [Versioning](#versioning)
+
 ## About
 
 [SuperDB](https://superdb.org/) is the successor to
@@ -77,9 +92,26 @@ npm run build
 }
 ```
 
+### LSP (Optional)
+
+Only [`super_complete` and `super_docs`](#lsp-tools) use the LSP — query execution,
+documentation, grok patterns, recipes, and database tools are fully
+functional on their own. The
+[SuperDB LSP](https://github.com/chrismo/superdb-lsp) adds code completions
+and symbol documentation for those who want it. Download a binary from the
+[releases page](https://github.com/chrismo/superdb-lsp/releases), then
+point the MCP server to it:
+
+```bash
+export SUPERDB_LSP_PATH=/path/to/superdb-lsp
+```
+
+Add the export to your shell profile for persistence. Run `super_lsp_status`
+to verify setup.
+
 ## Tools
 
-### Query Tools
+### Query & Data
 
 #### `super_query`
 Execute a SuperSQL query on data files. On errors, includes migration hints for
@@ -94,21 +126,13 @@ inputFormat?: string  # Force input format
 ```
 
 #### `super_schema`
-Inspect types in a data file by sampling records.
+Inspect types in a data file by finding unique shapes with counts and examples.
 
 ```
 file: string          # Path to data file
-sample?: number       # Records to sample (default: 5)
 ```
 
-### Database Tools
-
-#### `super_db_list`
-List all pools in a SuperDB database.
-
-```
-lake?: string         # Lake path (default: ~/.super)
-```
+### Database (Lake)
 
 #### `super_db_query`
 Query data from a database pool.
@@ -118,6 +142,22 @@ query: string         # The SuperSQL query
 pool?: string         # Pool name
 lake?: string         # Lake path
 format?: string       # Output format
+```
+
+#### `super_db_list`
+List all pools in a SuperDB database.
+
+```
+lake?: string         # Lake path (default: ~/.super)
+```
+
+#### `super_db_create_pool`
+Create a new pool.
+
+```
+name: string          # Pool name
+orderBy?: string      # Sort key
+lake?: string         # Lake path
 ```
 
 #### `super_db_load`
@@ -130,16 +170,33 @@ data?: string         # Inline data
 lake?: string         # Lake path
 ```
 
-#### `super_db_create_pool`
-Create a new pool.
+### Documentation & Reference
+
+Content targets SuperDB v0.1.0. Responses include a `version_note` when
+the installed runtime differs from the content target.
+
+#### `super_help`
+Get SuperDB documentation — expert guide, migration docs, or tutorials.
 
 ```
-name: string          # Pool name
-orderBy?: string      # Sort key
-lake?: string         # Lake path
+topic: string         # "expert", "upgrade", "tutorials", or "tutorial:<name>"
 ```
 
-### Info Tools
+#### `super_grok_patterns`
+Search/filter 89 grok patterns for parsing logs, timestamps, IPs, and more.
+
+```
+query?: string        # Filter by pattern name or regex content
+```
+
+#### `super_recipes`
+Search/list 16 recipe functions (from superkit) with signatures, descriptions, and examples.
+
+```
+query?: string        # Filter by function name, description, or source file
+```
+
+### Environment & Diagnostics
 
 #### `super_info`
 Get SuperDB version info, environment configuration, LSP availability, and installation instructions.
@@ -152,14 +209,7 @@ compare_to?: string   # Optional path to another super binary to compare
 Check if the SuperDB LSP is installed and get installation instructions if not.
 
 ```
-# No parameters - returns availability status and setup instructions
-```
-
-#### `super_help`
-Get SuperDB documentation (bundled expert guide or migration docs).
-
-```
-topic: string         # "expert", "upgrade", "upgrade-guide", or "migration"
+# No parameters
 ```
 
 #### `super_test_compat`
@@ -214,9 +264,24 @@ No shell escaping needed - the query string is passed directly.
 
 ## Versioning
 
-This MCP server versions to match the SuperDB release it targets. The
-`super_info` tool reports both your runtime version and the bundled docs
-version, warning if they differ.
+This MCP server uses its own independent semver, decoupled from SuperDB's
+version. Query tools (`super_query`, `super_schema`, etc.) work with any
+version of the `super` binary, so the MCP server is useful even if your
+runtime is older or newer than the target. Bundled content — documentation,
+tutorials, grok patterns, and recipes — is written for a specific SuperDB
+release, so aligning your runtime with the target version gives the best
+results. The `super_info` tool reports both versions, and content tools
+include a `version_note` when they differ.
+
+The optional [SuperDB LSP](#lsp-optional) enables code completions and
+documentation lookup — see [installation instructions](#lsp-optional).
+
+| MCP Version | SuperDB Target         | Notes                                          |
+|-------------|------------------------|-------------------------------------------------|
+| 1.1.0       | v0.1.0                 | Grok patterns, tutorials, recipes from superkit |
+| 1.0.0       | v0.1.0                 | Switched to independent semver                  |
+| 0.1.0       | v0.1.0                 | Aligned with first official SuperDB release     |
+| 0.51231.x   | 0.51231 (pre-release)  | Legacy pseudo-version scheme                    |
 
 ## License
 

@@ -106,6 +106,11 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
       }
     }
 
+    // Nudge toward LSP tools when available and error suggests a function/keyword issue
+    if (process.env.SUPERDB_LSP_PATH) {
+      suggestions.push('Tip: use super_docs to look up function signatures and keyword documentation before retrying.');
+    }
+
     return {
       success: false,
       data: null,

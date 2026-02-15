@@ -53,6 +53,10 @@ The authoritative source for these docs is [superkit](https://github.com/chrismo
 - `SUPER_PATH` - Path to super binary (default: `super` from PATH)
 - `SUPERDB_LSP_PATH` - Path to SuperDB LSP server for code intelligence features
 
+## Commit Checklist
+
+Before every commit, check whether `CHANGELOG.md` needs an update. Not every commit warrants a changelog entry, but always consider it. New features, bug fixes, changed behavior, and new/removed tools should be logged. Minor refactors, README tweaks, and internal cleanups generally don't need entries.
+
 ## Key Patterns
 
 Tool implementations return structured result objects (e.g., `QueryResult`) that get JSON-serialized back to the MCP client. Errors are caught and returned as `{ error: message }` with `isError: true`.

@@ -99,43 +99,9 @@ function buildResources() {
 
 const resources = buildResources();
 
-// Tool definitions
+// Tool definitions — grouped by category, ordered by likely usage frequency
 const tools = [
-  {
-    name: 'super_info',
-    description: 'Get SuperDB version info, environment configuration, LSP availability, and installation instructions. Call this to check setup status or learn how to install the optional LSP for enhanced query assistance.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        compare_to: {
-          type: 'string',
-          description: 'Optional path to another super binary to compare versions',
-        },
-      },
-    },
-  },
-  {
-    name: 'super_lsp_status',
-    description: 'Check if the SuperDB LSP is installed and get installation instructions if not. The LSP enables code completions and documentation lookup for SuperSQL queries.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {},
-    },
-  },
-  {
-    name: 'super_help',
-    description: 'Get SuperDB documentation (content targets v0.1.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        topic: {
-          type: 'string',
-          description: 'Documentation topic to retrieve',
-        },
-      },
-      required: ['topic'],
-    },
-  },
+  // --- Query & Data ---
   {
     name: 'super_query',
     description: 'Execute a SuperDB/SuperSQL query on data files. Returns structured results without shell escaping issues.',
@@ -182,19 +148,7 @@ const tools = [
       required: ['file'],
     },
   },
-  {
-    name: 'super_db_list',
-    description: 'List all pools in a SuperDB database.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        lake: {
-          type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
-        },
-      },
-    },
-  },
+  // --- Database (Lake) ---
   {
     name: 'super_db_query',
     description: 'Query data from a SuperDB database pool.',
@@ -220,6 +174,41 @@ const tools = [
         },
       },
       required: ['query'],
+    },
+  },
+  {
+    name: 'super_db_list',
+    description: 'List all pools in a SuperDB database.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        lake: {
+          type: 'string',
+          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
+        },
+      },
+    },
+  },
+  {
+    name: 'super_db_create_pool',
+    description: 'Create a new pool in a SuperDB database.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Name for the new pool',
+        },
+        orderBy: {
+          type: 'string',
+          description: 'Field to order/sort data by',
+        },
+        lake: {
+          type: 'string',
+          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
+        },
+      },
+      required: ['name'],
     },
   },
   {
@@ -249,26 +238,67 @@ const tools = [
       required: ['pool'],
     },
   },
+  // --- Documentation & Reference ---
   {
-    name: 'super_db_create_pool',
-    description: 'Create a new pool in a SuperDB database.',
+    name: 'super_help',
+    description: 'Get SuperDB documentation (content targets v0.1.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        name: {
+        topic: {
           type: 'string',
-          description: 'Name for the new pool',
-        },
-        orderBy: {
-          type: 'string',
-          description: 'Field to order/sort data by',
-        },
-        lake: {
-          type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
+          description: 'Documentation topic to retrieve',
         },
       },
-      required: ['name'],
+      required: ['topic'],
+    },
+  },
+  {
+    name: 'super_grok_patterns',
+    description: 'Search/filter grok patterns by name or regex content (content targets SuperDB v0.1.0). Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Optional filter — matches against pattern name or regex content (case-insensitive substring)',
+        },
+      },
+    },
+  },
+  {
+    name: 'super_recipes',
+    description: 'Search/list available SuperDB recipe functions from the superkit collection (content targets SuperDB v0.1.0). Returns structured JSON with function signatures, descriptions, and usage examples.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Optional filter — matches against function name, description, or source file (case-insensitive substring)',
+        },
+      },
+    },
+  },
+  // --- Environment & Diagnostics ---
+  {
+    name: 'super_info',
+    description: 'Get SuperDB version info, environment configuration, LSP availability, and installation instructions. Call this to check setup status or learn how to install the optional LSP for enhanced query assistance.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        compare_to: {
+          type: 'string',
+          description: 'Optional path to another super binary to compare versions',
+        },
+      },
+    },
+  },
+  {
+    name: 'super_lsp_status',
+    description: 'Check if the SuperDB LSP is installed and get installation instructions if not. The LSP enables code completions and documentation lookup for SuperSQL queries.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
     },
   },
   {
@@ -290,6 +320,7 @@ const tools = [
       required: ['query', 'versions'],
     },
   },
+  // --- LSP (requires SUPERDB_LSP_PATH) ---
   {
     name: 'super_complete',
     description: 'Get code completions for a SuperSQL query at a position. Requires SUPERDB_LSP_PATH to be set.',
@@ -332,32 +363,6 @@ const tools = [
         },
       },
       required: ['query', 'line', 'character'],
-    },
-  },
-  {
-    name: 'super_grok_patterns',
-    description: 'Search/filter grok patterns by name or regex content (content targets SuperDB v0.1.0). Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        query: {
-          type: 'string',
-          description: 'Optional filter — matches against pattern name or regex content (case-insensitive substring)',
-        },
-      },
-    },
-  },
-  {
-    name: 'super_recipes',
-    description: 'Search/list available SuperDB recipe functions from the superkit collection (content targets SuperDB v0.1.0). Returns structured JSON with function signatures, descriptions, and usage examples.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        query: {
-          type: 'string',
-          description: 'Optional filter — matches against function name, description, or source file (case-insensitive substring)',
-        },
-      },
     },
   },
   ];

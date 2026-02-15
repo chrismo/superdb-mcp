@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-02-15
+## [1.1.0] - 2026-02-15 (targets SuperDB v0.1.0)
 
 ### Added
 - Smart error hint when `files` param is confused with SQL FROM clause file resolution — suggests using absolute paths in FROM
@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - MCP resources for tutorials (`superdb://tutorials/{name}`), recipes (`superdb://recipes/{name}`), and grok patterns (`superdb://docs/grok-patterns`)
 - `version_note` field in content tool responses when runtime version differs from content target (v0.1.0)
 - `scheme` field in `VersionInfo` — classifies versions as `ymmdd`, `semver`, `sha`, or `unknown`
+- `super_query` error responses suggest `super_docs` for function/keyword lookup when LSP is available
 
 ### Fixed
 - Version comparison: YMMDD pre-release versions (e.g., 0.51231) are now correctly treated as older than semver releases (e.g., 0.1.0) — previously string comparison made them appear newer
@@ -28,7 +29,7 @@ All notable changes to this project will be documented in this file.
 - Moved dynamic `from` docs out of Lake-specific section — f-strings are general-purpose
 - `super_help` topic parameter is no longer restricted to an enum — now accepts tutorial names
 
-## [1.0.0] - 2026-02-14
+## [1.0.0] - 2026-02-14 (targets SuperDB v0.1.0)
 
 ### Changed
 - Switched to decoupled semver (independent from SuperDB version)
@@ -36,7 +37,7 @@ All notable changes to this project will be documented in this file.
 - Excluded test files from published build
 - Added publishing workflow docs to CLAUDE.md
 
-## [0.1.0] - 2026-01-31
+## [0.1.0] - 2026-01-31 (targets SuperDB v0.1.0)
 
 ### Changed
 - Version aligned with official SuperDB v0.1.0 release
@@ -44,13 +45,13 @@ All notable changes to this project will be documented in this file.
 - Updated README to reflect official release status
 - Fixed `super_validate` using wrong flag case (`-C` → `-c`)
 
-## [0.51231.1] - 2025-01-05
+## [0.51231.1] - 2025-01-05 (targets SuperDB 0.51231 pre-release)
 
 ### Fixed
 - Added missing tools to README (super_info, super_help, super_test_compat,
   super_complete, super_docs)
 
-## [0.51231.0] - 2025-01-05
+## [0.51231.0] - 2025-01-05 (targets SuperDB 0.51231 pre-release)
 
 ### Added
 - Initial npm release
