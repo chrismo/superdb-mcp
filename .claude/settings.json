@@ -18,7 +18,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(grep:*)",
       "WebSearch",
-      "WebFetch(domain:registry.npmjs.org)"
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(npm publish:*)"
     ]
   },
   "enabledMcpjsonServers": [
