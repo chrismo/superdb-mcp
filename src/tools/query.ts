@@ -1,3 +1,4 @@
+import { basename } from 'path';
 import { runSuper, parseNDJSON } from '../lib/super.js';
 
 export interface QueryParams {
@@ -86,6 +87,20 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
     }
     if (query.match(/\bop\s+\w+\s*\(/)) {
       suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
+    }
+    if (error.includes('file does not exist') && files && files.length > 0) {
+      const missingMatch = error.match(/file does not exist: (\S+)/);
+      const missingName = missingMatch ? missingMatch[1] : null;
+      if (missingName) {
+        const match = files.find(f => basename(f) === missingName);
+        if (match) {
+          suggestions.push(`The file "${missingName}" was not found. Use the absolute path in your FROM clause: FROM "${match}"`);
+        } else {
+          suggestions.push('FROM clauses resolve paths relative to the server\'s working directory, not from the files parameter. Use absolute paths in FROM clauses.');
+        }
+      } else {
+        suggestions.push('FROM clauses resolve paths relative to the server\'s working directory, not from the files parameter. Use absolute paths in FROM clauses.');
+      }
     }
 
     return {

@@ -87,7 +87,7 @@ common zq-to-SuperDB syntax changes (yield→values, over→unnest, func→fn, e
 
 ```
 query: string         # Required: The SuperSQL query
-files?: string[]      # File paths to query
+files?: string[]      # Pipeline-style input (not for SQL FROM; use absolute paths in FROM)
 data?: string         # Inline data (alternative to files)
 format?: string       # Output: json (default), sup, csv, table
 inputFormat?: string  # Force input format

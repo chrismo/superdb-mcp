@@ -102,7 +102,7 @@ const tools = [
         files: {
           type: 'array',
           items: { type: 'string' },
-          description: 'File paths to query (JSON, Parquet, CSV, SUP, etc.)',
+          description: 'File paths for pipeline-style input (piped into the query). For SQL FROM clauses, use absolute paths directly in the query instead.',
         },
         data: {
           type: 'string',

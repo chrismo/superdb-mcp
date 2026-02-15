@@ -48,4 +48,15 @@ describe('superQuery migration hints', () => {
     expect(result.error).toBeTruthy();
     expect(result.suggestions).toBeUndefined();
   });
+
+  it.skipIf(() => !superAvailable)('suggests absolute path when FROM uses relative name but files has absolute path', async () => {
+    const absPath = '/tmp/claude/test-data.json';
+    const result = await superQuery({
+      query: 'select * from test-data.json',
+      files: [absPath],
+    });
+    expect(result.success).toBe(false);
+    expect(result.suggestions).toBeDefined();
+    expect(result.suggestions!.some(s => s.includes(absPath) && s.includes('FROM'))).toBe(true);
+  });
 });
