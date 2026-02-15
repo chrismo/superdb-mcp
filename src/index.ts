@@ -8,14 +8,16 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, readdirSync } from 'fs';
+import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 import { superQuery, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
 import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
 import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
+import { superGrokPatterns } from './tools/grok.js';
+import { superRecipes } from './tools/recipes.js';
 
 // Get docs directory path
 const __filename = fileURLToPath(import.meta.url);
@@ -35,21 +37,67 @@ const server = new Server(
   }
 );
 
-// Resource definitions
-const resources = [
-  {
-    uri: 'superdb://docs/expert',
-    name: 'SuperDB Expert Guide',
-    description: 'Comprehensive guide for SuperDB queries, syntax patterns, and best practices. Read this before writing complex queries.',
-    mimeType: 'text/markdown',
-  },
-  {
-    uri: 'superdb://docs/upgrade-guide',
-    name: 'ZQ to SuperDB Upgrade Guide',
-    description: 'Migration guide covering all breaking changes from zq to SuperDB. Essential for upgrading old scripts.',
-    mimeType: 'text/markdown',
-  },
-];
+// Build dynamic resource list
+function buildResources() {
+  const staticResources = [
+    {
+      uri: 'superdb://docs/expert',
+      name: 'SuperDB Expert Guide',
+      description: 'Comprehensive guide for SuperDB queries, syntax patterns, and best practices. Read this before writing complex queries.',
+      mimeType: 'text/markdown',
+    },
+    {
+      uri: 'superdb://docs/upgrade-guide',
+      name: 'ZQ to SuperDB Upgrade Guide',
+      description: 'Migration guide covering all breaking changes from zq to SuperDB. Essential for upgrading old scripts.',
+      mimeType: 'text/markdown',
+    },
+    {
+      uri: 'superdb://docs/grok-patterns',
+      name: 'Grok Patterns',
+      description: 'Collection of 89 grok patterns for parsing common log formats, timestamps, network addresses, and more.',
+      mimeType: 'text/plain',
+    },
+  ];
+
+  // Add tutorial resources
+  const tutorialsDir = join(docsDir, 'tutorials');
+  try {
+    const tutorials = readdirSync(tutorialsDir).filter(f => f.endsWith('.md')).sort();
+    for (const file of tutorials) {
+      const name = basename(file, '.md');
+      staticResources.push({
+        uri: `superdb://tutorials/${name}`,
+        name: `Tutorial: ${name}`,
+        description: `SuperDB tutorial: ${name}`,
+        mimeType: 'text/markdown',
+      });
+    }
+  } catch {
+    // tutorials dir may not exist
+  }
+
+  // Add recipe resources
+  const recipesDir = join(docsDir, 'recipes');
+  try {
+    const recipes = readdirSync(recipesDir).filter(f => f.endsWith('.spq')).sort();
+    for (const file of recipes) {
+      const name = basename(file, '.spq');
+      staticResources.push({
+        uri: `superdb://recipes/${name}`,
+        name: `Recipe: ${name}`,
+        description: `SuperDB recipe functions: ${name}`,
+        mimeType: 'text/plain',
+      });
+    }
+  } catch {
+    // recipes dir may not exist
+  }
+
+  return staticResources;
+}
+
+const resources = buildResources();
 
 // Tool definitions
 const tools = [
@@ -76,13 +124,12 @@ const tools = [
   },
   {
     name: 'super_help',
-    description: 'Get SuperDB documentation. Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration).',
+    description: 'Get SuperDB documentation. Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial).',
     inputSchema: {
       type: 'object' as const,
       properties: {
         topic: {
           type: 'string',
-          enum: ['expert', 'upgrade', 'upgrade-guide', 'migration'],
           description: 'Documentation topic to retrieve',
         },
       },
@@ -287,6 +334,32 @@ const tools = [
       required: ['query', 'line', 'character'],
     },
   },
+  {
+    name: 'super_grok_patterns',
+    description: 'Search/filter grok patterns by name or regex content. Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Optional filter — matches against pattern name or regex content (case-insensitive substring)',
+        },
+      },
+    },
+  },
+  {
+    name: 'super_recipes',
+    description: 'Search/list available SuperDB recipe functions from the superkit collection. Returns structured JSON with function signatures, descriptions, and usage examples.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Optional filter — matches against function name, description, or source file (case-insensitive substring)',
+        },
+      },
+    },
+  },
   ];
 
 // Register resource list handler
@@ -298,24 +371,38 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  const resourceMap: Record<string, string> = {
+  const staticMap: Record<string, string> = {
     'superdb://docs/expert': 'superdb-expert.md',
     'superdb://docs/upgrade-guide': 'zq-to-super-upgrades.md',
+    'superdb://docs/grok-patterns': 'grok-patterns.sup',
   };
 
-  const filename = resourceMap[uri];
-  if (!filename) {
+  let filepath: string | null = null;
+  let mimeType = 'text/markdown';
+
+  if (staticMap[uri]) {
+    filepath = join(docsDir, staticMap[uri]);
+    if (uri.endsWith('grok-patterns')) mimeType = 'text/plain';
+  } else if (uri.startsWith('superdb://tutorials/')) {
+    const name = uri.slice('superdb://tutorials/'.length);
+    filepath = join(docsDir, 'tutorials', `${name}.md`);
+  } else if (uri.startsWith('superdb://recipes/')) {
+    const name = uri.slice('superdb://recipes/'.length);
+    filepath = join(docsDir, 'recipes', `${name}.spq`);
+    mimeType = 'text/plain';
+  }
+
+  if (!filepath) {
     throw new Error(`Unknown resource: ${uri}`);
   }
 
   try {
-    const filepath = join(docsDir, filename);
     const content = readFileSync(filepath, 'utf-8');
     return {
       contents: [
         {
           uri,
-          mimeType: 'text/markdown',
+          mimeType,
           text: content,
         },
       ],
@@ -446,6 +533,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args?.line as number,
           args?.character as number
         );
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case 'super_grok_patterns': {
+        const result = superGrokPatterns(args?.query as string | undefined);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case 'super_recipes': {
+        const result = superRecipes(args?.query as string | undefined);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };

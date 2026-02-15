@@ -6,13 +6,28 @@ Pull latest docs from superkit, check LSP version sync, update if changed, and p
 
 ## Execution Plan
 
-### Phase 1: Fetch Latest Docs from Superkit
+### Phase 1: Fetch Latest Content from Superkit
 
 Use curl to get the exact raw content (WebFetch summarizes, we need exact):
 
 ```bash
+# Core docs
 curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/superdb-expert.md > /tmp/superdb-expert-new.md
 curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/zq-to-super-upgrades.md > /tmp/zq-to-super-upgrades-new.md
+
+# Grok patterns
+curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/bin/skgrok.jsup > /tmp/grok-patterns-new.sup
+
+# Tutorials
+for doc in grok subqueries unnest joins sup_to_bash super_db_update moar_subqueries; do
+  curl -sS "https://raw.githubusercontent.com/chrismo/superkit/main/doc/${doc}.md" > "/tmp/tutorial-${doc}-new.md"
+done
+curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/tutorial/chess-tiebreaks.md > /tmp/tutorial-chess-tiebreaks-new.md
+
+# Recipes
+for recipe in array format integer records string; do
+  curl -sS "https://raw.githubusercontent.com/chrismo/superkit/main/src/${recipe}.spq" > "/tmp/recipe-${recipe}-new.spq"
+done
 ```
 
 Extract the version from the upgrade doc header:
@@ -54,7 +69,7 @@ This phase is **informational only** — it reports findings for human review, d
 ⚠️ Review these for migration guide updates before publishing.
 ```
 
-### Phase 3: Compare with Current Bundled Docs
+### Phase 3: Compare with Current Bundled Content
 
 **Note:** Bundled docs have YAML frontmatter that superkit originals don't have. Compare the body content only.
 
@@ -63,6 +78,9 @@ This phase is **informational only** — it reports findings for human review, d
 3. Compare body content with fetched files
 4. Extract current bundled version from frontmatter: `superdb_version: "X.XXXXX"`
 5. Compare with fetched version from header: `SuperDB Version X.XXXXX`
+6. Compare `docs/grok-patterns.sup` with fetched grok patterns
+7. Compare each tutorial in `docs/tutorials/` with fetched tutorials (strip frontmatter for comparison)
+8. Compare each recipe in `docs/recipes/` with fetched recipes
 
 ### Phase 4: Check LSP Release Version
 
@@ -104,7 +122,17 @@ If fetched docs differ from current:
 
    Then append the fetched content (stripping any duplicate header if present).
 
-2. **Determine new version**:
+2. **Update grok patterns** if changed:
+   - Copy fetched file to `docs/grok-patterns.sup`
+
+3. **Update tutorials** if changed:
+   - For each tutorial, prepend YAML frontmatter (matching existing pattern in `docs/tutorials/`) and copy to `docs/tutorials/`
+   - Frontmatter fields: name, description, superdb_version, last_updated, source
+
+4. **Update recipes** if changed:
+   - Copy fetched .spq files to `docs/recipes/`
+
+5. **Determine new version**:
    - Extract doc version from upgrade doc header (e.g., `0.51232`)
    - Read current version from `package.json`
    - If doc version changed: new version = `{doc_version}.0`

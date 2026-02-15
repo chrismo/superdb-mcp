@@ -8,12 +8,19 @@ All notable changes to this project will be documented in this file.
 - Smart error hint when `files` param is confused with SQL FROM clause file resolution — suggests using absolute paths in FROM
 - Migration hint for `+` string concatenation removal — recommends f-string interpolation, `||`, or `concat()`
 - Migration docs for string concat with `+` removed (PR 6486) and dynamic `from` requiring f-strings (PR 6450)
+- `super_grok_patterns` tool — search/filter 89 grok patterns by name or regex content
+- `super_recipes` tool — search/list 16 SuperDB recipe functions with skdoc metadata (signatures, descriptions, examples)
+- Tutorial support in `super_help` — `tutorials` topic lists all, `tutorial:<name>` reads specific tutorials
+- 8 tutorials imported from superkit: grok, subqueries, unnest, joins, sup_to_bash, super_db_update, moar_subqueries, chess-tiebreaks
+- 5 recipe files imported from superkit: array, format, integer, records, string
+- MCP resources for tutorials (`superdb://tutorials/{name}`), recipes (`superdb://recipes/{name}`), and grok patterns (`superdb://docs/grok-patterns`)
 
 ### Changed
 - Removed `super_validate` tool; migration hints now appear in `super_query` error responses
 - `super_query` errors include a `suggestions` field with zq→SuperDB migration hints when applicable
 - Clarified `files` parameter description to distinguish pipeline input from SQL FROM clause usage
 - Moved dynamic `from` docs out of Lake-specific section — f-strings are general-purpose
+- `super_help` topic parameter is no longer restricted to an enum — now accepts tutorial names
 
 ## [1.0.0] - 2026-02-14
 

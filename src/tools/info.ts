@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, readdirSync } from 'fs';
+import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import {
@@ -245,6 +245,21 @@ export function superCompare(currentPath?: string, compareToPath?: string): Comp
 /**
  * Get help documentation
  */
+/**
+ * List available tutorial names from docs/tutorials/
+ */
+function listTutorials(): string[] {
+  const tutorialsDir = join(docsDir, 'tutorials');
+  try {
+    return readdirSync(tutorialsDir)
+      .filter(f => f.endsWith('.md'))
+      .map(f => basename(f, '.md'))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
 export function superHelp(topic: string): HelpResult {
   const topics: Record<string, string> = {
     'expert': 'superdb-expert.md',
@@ -253,13 +268,70 @@ export function superHelp(topic: string): HelpResult {
     'migration': 'zq-to-super-upgrades.md',
   };
 
-  const filename = topics[topic.toLowerCase()];
-  if (!filename) {
+  const normalized = topic.toLowerCase();
+
+  // Handle "tutorials" topic — list available tutorials
+  if (normalized === 'tutorials') {
+    const tutorials = listTutorials();
+    const listing = tutorials.length > 0
+      ? tutorials.map(t => `- tutorial:${t}`).join('\n')
+      : 'No tutorials found.';
+    return {
+      success: true,
+      topic,
+      content: `# Available Tutorials\n\nUse \`super_help\` with topic \`"tutorial:<name>"\` to read a specific tutorial.\n\n${listing}`,
+      error: null,
+    };
+  }
+
+  // Handle "tutorial:<name>" topics
+  if (normalized.startsWith('tutorial:')) {
+    const tutorialName = normalized.slice('tutorial:'.length);
+    const tutorialsDir = join(docsDir, 'tutorials');
+    // Try exact match, then with underscores replaced by hyphens
+    const candidates = [
+      `${tutorialName}.md`,
+      `${tutorialName.replace(/-/g, '_')}.md`,
+      `${tutorialName.replace(/_/g, '-')}.md`,
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        const filepath = join(tutorialsDir, candidate);
+        const content = readFileSync(filepath, 'utf-8');
+        return {
+          success: true,
+          topic,
+          content,
+          error: null,
+        };
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    const tutorials = listTutorials();
     return {
       success: false,
       topic,
       content: '',
-      error: `Unknown topic: ${topic}. Available topics: ${Object.keys(topics).join(', ')}`,
+      error: `Unknown tutorial: ${tutorialName}. Available tutorials: ${tutorials.join(', ')}`,
+    };
+  }
+
+  const filename = topics[normalized];
+  if (!filename) {
+    const tutorials = listTutorials();
+    const allTopics = [
+      ...Object.keys(topics),
+      'tutorials',
+      ...tutorials.map(t => `tutorial:${t}`),
+    ];
+    return {
+      success: false,
+      topic,
+      content: '',
+      error: `Unknown topic: ${topic}. Available topics: ${allTopics.join(', ')}`,
     };
   }
 
