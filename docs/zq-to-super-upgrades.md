@@ -44,8 +44,9 @@ This table covers ALL breaking changes. Complex items reference detailed section
 | Streaming agg    | `put x:=sum(y)`             | Removed (see section)                    |
 | Functions        | `crop/fill/fit/order/shape` | Removed — use cast                       |
 | Globs            | `grep(foo*)`                | Removed — use regex                      |
+| String concat    | `"a" + "b"`                 | `f'{a}{b}'`, `a \|\| b`, or `concat`     |
 | count type       | returns `uint64`            | returns `int64`                          |
-| Lake f-string    | `from pool`                 | `from f'{pool}'` (see section)           |
+| Dynamic from     | `from pool`                 | `from f'{pool}'` (see section)           |
 
 ## CLI Changes
 
@@ -310,6 +311,30 @@ super -c 'from ( from a )'
 super -c 'select * from ( select * from a )'
 ```
 
+### String concatenation with `+` removed
+
+As of [PR 6486](https://github.com/brimdata/super/pull/6486) on Jan 5, 2026:
+
+The `+` operator no longer concatenates strings. Use f-string interpolation
+(preferred), `||`, or `concat()`:
+
+```bash
+-- OLD (no longer works)
+super -s -c "values 'hello' + ' world'"
+
+-- Preferred (f-string interpolation, also worked in zq)
+super -s -c "values f'{'hello'} {'world'}'"
+"hello world"
+
+-- Also works
+super -s -c "values 'hello' || ' world'"
+"hello world"
+
+-- Also works
+super -s -c "values concat('hello', ' world')"
+"hello world"
+```
+
 ### Aggregate filter clause
 
 As of [PR 6465](https://github.com/brimdata/super/pull/6465) on Dec 23, 2025:
@@ -323,6 +348,23 @@ count() where grep('bar', this)
 -- NEW
 count() filter (grep('bar', this))
 ```
+
+### Dynamic from requires f-string syntax
+
+As of [PR 6450](https://github.com/brimdata/super/pull/6450) on Dec 16, 2025:
+
+Bare dynamic `from` no longer works. Use f-string interpolation:
+
+```bash
+-- OLD (no longer works)
+from pool_name
+
+-- NEW
+from f'{pool_name}'
+```
+
+Note: f-strings are general-purpose string interpolation and work anywhere a
+string is accepted, not just in `from` clauses.
 
 ## Removed Features
 
@@ -395,22 +437,6 @@ super -s -c "values 1,2,3 | aggregate cnt:=count() | typeof(cnt)"
 super -s -c "values 1,2,3 | aggregate cnt:=count() | typeof(cnt)"
 <int64>
 ```
-
-## Advanced/Lake Features
-
-### Robot from f-string syntax
-
-As of [PR 6450](https://github.com/brimdata/super/pull/6450) on Dec 16, 2025:
-
-Dynamic data source specification now uses f-string syntax. This is primarily
-relevant when using SuperDB with a lake (database):
-
-```bash
-from f'{pool_name}'
-```
-
-If you previously scanned entities within an array of strings, emulate that with
-`unnest` upstream of the robot from.
 
 ## Formatting Conventions for AI Upgraders
 

@@ -85,6 +85,9 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
     if (error.includes('func')) {
       suggestions.push('Did you mean "fn"? (func was renamed to fn in SuperDB)');
     }
+    if (error.includes('type mismatch') && error.includes('string + string')) {
+      suggestions.push('The + operator no longer concatenates strings. Use f-string interpolation (preferred): f\'{a}{b}\', or || operator, or concat()');
+    }
     if (query.match(/\bop\s+\w+\s*\(/)) {
       suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
     }
