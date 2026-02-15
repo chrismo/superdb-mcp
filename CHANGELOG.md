@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.0.1] - 2026-02-14
 
 ### Changed
 - Removed `super_validate` tool; migration hints now appear in `super_query` error responses
