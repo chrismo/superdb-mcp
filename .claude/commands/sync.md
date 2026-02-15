@@ -28,9 +28,8 @@ This phase is **informational only** — it reports findings for human review, d
 
 1. Fetch `https://raw.githubusercontent.com/chrismo/asdf-superdb/main/scripts/versions.txt` using curl
 2. Get the last synced SuperDB version from the upgrade doc frontmatter (`superdb_version` field, already extracted in Phase 1)
-3. Get the current `super` binary version via `super --version`
-4. Parse versions.txt to find all comment blocks containing "breaking" (case-insensitive) that appear **after** the last synced version's entries
-5. Report any found with their associated PR links
+3. Parse versions.txt to find all comment blocks containing "breaking" (case-insensitive) that appear **after** the last synced version's entries
+4. Report any found with their associated PR links
 
 **Step 2: Check LSP CHANGELOG**
 
@@ -157,11 +156,15 @@ Output a summary:
 **MCP Version**: 0.XXXXX.X
 **Status**: [in-sync | docs-ahead | docs-behind]
 
+### Breaking Change Scan
+[Include the full breaking change scan output from Phase 2 here]
+
 ### Changes
 - [list what was updated, or "No changes - docs already in sync"]
 
 ### Next Steps
-- [If changes made]: Ready for `npm publish`
+- [If breaking changes found]: Update migration guide in superkit before publishing
+- [If changes made, no breaking changes]: Ready for `npm publish`
 - [If docs-behind]: Consider running /sync in superkit first
 ```
 
