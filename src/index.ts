@@ -27,7 +27,7 @@ const docsDir = join(__dirname, '../docs');
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.0.1',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -124,7 +124,7 @@ const tools = [
   },
   {
     name: 'super_help',
-    description: 'Get SuperDB documentation. Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial).',
+    description: 'Get SuperDB documentation (content targets v0.1.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -336,7 +336,7 @@ const tools = [
   },
   {
     name: 'super_grok_patterns',
-    description: 'Search/filter grok patterns by name or regex content. Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
+    description: 'Search/filter grok patterns by name or regex content (content targets SuperDB v0.1.0). Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -349,7 +349,7 @@ const tools = [
   },
   {
     name: 'super_recipes',
-    description: 'Search/list available SuperDB recipe functions from the superkit collection. Returns structured JSON with function signatures, descriptions, and usage examples.',
+    description: 'Search/list available SuperDB recipe functions from the superkit collection (content targets SuperDB v0.1.0). Returns structured JSON with function signatures, descriptions, and usage examples.',
     inputSchema: {
       type: 'object' as const,
       properties: {

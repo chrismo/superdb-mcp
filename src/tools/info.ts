@@ -6,6 +6,7 @@ import {
   detectVersion,
   compareVersionInfo,
   checkDocsCompatibility,
+  getVersionNote,
   VersionInfo,
   VersionComparison,
 } from '../lib/version.js';
@@ -61,6 +62,7 @@ export interface HelpResult {
   success: boolean;
   topic: string;
   content: string;
+  version_note?: string;
   error: string | null;
 }
 
@@ -202,6 +204,7 @@ export function superInfo(compareTo?: string): InfoResult {
       mcp_version: getMcpVersion(),
       runtime: {
         version: 'unknown',
+        scheme: 'unknown',
         raw: '',
         date: null,
         sha: null,
@@ -269,6 +272,7 @@ export function superHelp(topic: string): HelpResult {
   };
 
   const normalized = topic.toLowerCase();
+  const versionNote = getVersionNote() ?? undefined;
 
   // Handle "tutorials" topic — list available tutorials
   if (normalized === 'tutorials') {
@@ -280,6 +284,7 @@ export function superHelp(topic: string): HelpResult {
       success: true,
       topic,
       content: `# Available Tutorials\n\nUse \`super_help\` with topic \`"tutorial:<name>"\` to read a specific tutorial.\n\n${listing}`,
+      ...(versionNote && { version_note: versionNote }),
       error: null,
     };
   }
@@ -303,6 +308,7 @@ export function superHelp(topic: string): HelpResult {
           success: true,
           topic,
           content,
+          ...(versionNote && { version_note: versionNote }),
           error: null,
         };
       } catch {
@@ -342,6 +348,7 @@ export function superHelp(topic: string): HelpResult {
       success: true,
       topic,
       content,
+      ...(versionNote && { version_note: versionNote }),
       error: null,
     };
   } catch (e) {

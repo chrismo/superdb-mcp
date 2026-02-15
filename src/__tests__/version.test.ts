@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseYMMDDVersion, compareVersions, isVersionAtLeast, getDocsVersion } from '../lib/version.js';
+import { parseYMMDDVersion, compareVersions, isVersionAtLeast, getDocsVersion, getVersionScheme } from '../lib/version.js';
 
 describe('parseYMMDDVersion', () => {
   it('parses a valid YMMDD version string', () => {
@@ -58,14 +58,42 @@ describe('compareVersions', () => {
     expect(compareVersions('sha:abc', 'sha:def')).toBe(0);
   });
 
-  it('falls back to string comparison for non-YMMDD versions', () => {
+  it('compares semver versions numerically', () => {
     expect(compareVersions('1.0.0', '2.0.0')).toBe(-1);
     expect(compareVersions('2.0.0', '1.0.0')).toBe(1);
     expect(compareVersions('1.0.0', '1.0.0')).toBe(0);
+    expect(compareVersions('0.1.0', '0.2.0')).toBe(-1);
+    expect(compareVersions('0.10.0', '0.2.0')).toBe(1);
   });
 
   it('compares across year boundaries', () => {
     expect(compareVersions('0.51231', '0.60101')).toBe(-1);
+  });
+
+  it('treats YMMDD pre-releases as older than any semver', () => {
+    expect(compareVersions('0.51231', '0.1.0')).toBe(-1);
+    expect(compareVersions('0.1.0', '0.51231')).toBe(1);
+    expect(compareVersions('0.60101', '0.1.0')).toBe(-1);
+  });
+});
+
+describe('getVersionScheme', () => {
+  it('identifies YMMDD versions', () => {
+    expect(getVersionScheme('0.51231')).toBe('ymmdd');
+    expect(getVersionScheme('0.60101')).toBe('ymmdd');
+  });
+
+  it('identifies semver versions', () => {
+    expect(getVersionScheme('0.1.0')).toBe('semver');
+    expect(getVersionScheme('1.0.0')).toBe('semver');
+  });
+
+  it('identifies SHA versions', () => {
+    expect(getVersionScheme('sha:abc123')).toBe('sha');
+  });
+
+  it('identifies unknown versions', () => {
+    expect(getVersionScheme('unknown')).toBe('unknown');
   });
 });
 

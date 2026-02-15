@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { getVersionNote } from '../lib/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,6 +16,7 @@ export interface GrokPatternsResult {
   success: boolean;
   patterns: GrokPattern[];
   count: number;
+  version_note?: string;
   error: string | null;
 }
 
@@ -45,12 +47,14 @@ function loadGrokPatterns(): GrokPattern[] {
 export function superGrokPatterns(query?: string): GrokPatternsResult {
   try {
     const allPatterns = loadGrokPatterns();
+    const versionNote = getVersionNote() ?? undefined;
 
     if (!query) {
       return {
         success: true,
         patterns: allPatterns,
         count: allPatterns.length,
+        ...(versionNote && { version_note: versionNote }),
         error: null,
       };
     }
@@ -66,6 +70,7 @@ export function superGrokPatterns(query?: string): GrokPatternsResult {
       success: true,
       patterns: filtered,
       count: filtered.length,
+      ...(versionNote && { version_note: versionNote }),
       error: null,
     };
   } catch (e) {

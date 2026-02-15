@@ -1,7 +1,20 @@
 import { spawnSync } from 'child_process';
 
+/**
+ * SuperDB version scheme:
+ * - 'ymmdd': Pre-release pseudo-versions (0.YMMDD format, e.g., 0.51231).
+ *   These were used before the first official release and are always older
+ *   than any semver release.
+ * - 'semver': Official releases (e.g., 0.1.0). The first official release
+ *   was v0.1.0, which supersedes all YMMDD pre-release versions.
+ * - 'sha': Homebrew SHA-only builds (can't be compared).
+ * - 'unknown': Version could not be detected.
+ */
+export type VersionScheme = 'ymmdd' | 'semver' | 'sha' | 'unknown';
+
 export interface VersionInfo {
-  version: string;        // Normalized YMMDD format (e.g., "0.50930")
+  version: string;        // Normalized version (YMMDD like "0.50930" or semver like "0.1.0")
+  scheme: VersionScheme;  // Which version scheme this is
   raw: string;            // Raw version string from super --version
   date: Date | null;      // Parsed date if available
   sha: string | null;     // Git commit SHA if available
@@ -33,6 +46,7 @@ export function getSuperPath(): string {
  */
 function parseGoPseudoVersion(raw: string): {
   version: string;
+  scheme: VersionScheme;
   date: Date | null;
   sha: string | null;
   timestamp: string | null;
@@ -57,22 +71,32 @@ function parseGoPseudoVersion(raw: string): {
     // Y = last digit of year (5 for 2025), MMDD = month and day
     const ymmdd = `0.${timestamp.slice(3, 4)}${timestamp.slice(4, 8)}`;
 
-    return { version: ymmdd, date, sha, timestamp };
+    return { version: ymmdd, scheme: 'ymmdd', date, sha, timestamp };
   }
 
   // Try to match homebrew SHA-only version
   const shaMatch = raw.match(/Version:\s*([a-f0-9]{7,40})/i);
   if (shaMatch) {
-    return { version: `sha:${shaMatch[1]}`, date: null, sha: shaMatch[1], timestamp: null };
+    return { version: `sha:${shaMatch[1]}`, scheme: 'sha', date: null, sha: shaMatch[1], timestamp: null };
   }
 
   // Try to match semantic version
   const semverMatch = raw.match(/v?(\d+\.\d+\.\d+)/);
   if (semverMatch) {
-    return { version: semverMatch[1], date: null, sha: null, timestamp: null };
+    return { version: semverMatch[1], scheme: 'semver', date: null, sha: null, timestamp: null };
   }
 
-  return { version: 'unknown', date: null, sha: null, timestamp: null };
+  return { version: 'unknown', scheme: 'unknown', date: null, sha: null, timestamp: null };
+}
+
+/**
+ * Classify a version string's scheme
+ */
+export function getVersionScheme(version: string): VersionScheme {
+  if (version === 'unknown') return 'unknown';
+  if (version.startsWith('sha:')) return 'sha';
+  if (parseYMMDDVersion(version)) return 'ymmdd';
+  return 'semver';
 }
 
 /**
@@ -95,6 +119,7 @@ export function detectVersion(superPath?: string): VersionInfo {
     if (result.error || result.status !== 0) {
       return {
         version: 'unknown',
+        scheme: 'unknown',
         raw: result.stderr || '',
         date: null,
         sha: null,
@@ -116,6 +141,7 @@ export function detectVersion(superPath?: string): VersionInfo {
   } catch {
     return {
       version: 'unknown',
+      scheme: 'unknown',
       raw: '',
       date: null,
       sha: null,
@@ -144,6 +170,9 @@ export function parseYMMDDVersion(version: string): Date | null {
 /**
  * Compare two version strings
  * Returns: -1 if a < b, 0 if a == b, 1 if a > b
+ *
+ * YMMDD pre-release versions (e.g., 0.51231) are always older than
+ * semver releases (e.g., 0.1.0). The first official release was v0.1.0.
  */
 export function compareVersions(a: string, b: string): -1 | 0 | 1 {
   // Handle SHA-only versions (can't compare)
@@ -151,20 +180,32 @@ export function compareVersions(a: string, b: string): -1 | 0 | 1 {
     return 0;  // Can't compare SHAs meaningfully
   }
 
-  // Try to parse as YMMDD
-  const dateA = parseYMMDDVersion(a);
-  const dateB = parseYMMDDVersion(b);
+  const schemeA = getVersionScheme(a);
+  const schemeB = getVersionScheme(b);
 
-  if (dateA && dateB) {
+  // YMMDD pre-releases are always older than semver releases
+  if (schemeA === 'ymmdd' && schemeB === 'semver') return -1;
+  if (schemeA === 'semver' && schemeB === 'ymmdd') return 1;
+
+  // Both YMMDD — compare by date
+  if (schemeA === 'ymmdd' && schemeB === 'ymmdd') {
+    const dateA = parseYMMDDVersion(a)!;
+    const dateB = parseYMMDDVersion(b)!;
     const diff = dateA.getTime() - dateB.getTime();
     if (diff < 0) return -1;
     if (diff > 0) return 1;
     return 0;
   }
 
-  // Fallback to string comparison
-  if (a < b) return -1;
-  if (a > b) return 1;
+  // Both semver — compare segments numerically
+  const partsA = a.split('.').map(Number);
+  const partsB = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const pa = partsA[i] ?? 0;
+    const pb = partsB[i] ?? 0;
+    if (pa < pb) return -1;
+    if (pa > pb) return 1;
+  }
   return 0;
 }
 
@@ -251,10 +292,19 @@ export function checkDocsCompatibility(): {
   } else if (runtime.version !== docs && !runtime.version.startsWith('sha:')) {
     const comparison = compareVersions(runtime.version, docs);
     if (comparison < 0) {
-      warnings.push(
-        `Runtime (${runtime.version}) is older than docs (${docs}). ` +
-        `Some documented features may not be available.`
-      );
+      compatible = false;
+      if (runtime.scheme === 'ymmdd') {
+        warnings.push(
+          `Runtime (${runtime.version}) is a pre-release build. ` +
+          `Versions like 0.YMMDD (e.g., 0.51231) were unofficial pre-release builds before the first official release (v${docs}). ` +
+          `Query execution still works, but tutorials, recipes, and docs target v${docs} syntax.`
+        );
+      } else {
+        warnings.push(
+          `Runtime (${runtime.version}) is older than docs (${docs}). ` +
+          `Some documented features may not be available.`
+        );
+      }
     } else {
       warnings.push(
         `Runtime (${runtime.version}) is newer than docs (${docs}). ` +
@@ -264,4 +314,30 @@ export function checkDocsCompatibility(): {
   }
 
   return { runtime, docs, compatible, warnings };
+}
+
+/**
+ * Get a concise version note for content tool responses.
+ * Returns null if versions match (no note needed).
+ */
+let cachedVersionNote: string | null | undefined;
+
+export function getVersionNote(): string | null {
+  if (cachedVersionNote !== undefined) return cachedVersionNote;
+
+  const { runtime, docs, compatible, warnings } = checkDocsCompatibility();
+  if (compatible && warnings.length === 0) {
+    cachedVersionNote = null;
+  } else {
+    cachedVersionNote = warnings.join(' ') ||
+      `Runtime version ${runtime.version} differs from content target version ${docs}.`;
+  }
+  return cachedVersionNote;
+}
+
+/**
+ * Reset the cached version note (for testing)
+ */
+export function resetVersionNoteCache(): void {
+  cachedVersionNote = undefined;
 }

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
+import { getVersionNote } from '../lib/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,6 +31,7 @@ export interface RecipesResult {
   success: boolean;
   recipes: RecipeFunction[];
   count: number;
+  version_note?: string;
   error: string | null;
 }
 
@@ -159,12 +161,14 @@ function loadAllRecipes(): RecipeFunction[] {
 export function superRecipes(query?: string): RecipesResult {
   try {
     const allRecipes = loadAllRecipes();
+    const versionNote = getVersionNote() ?? undefined;
 
     if (!query) {
       return {
         success: true,
         recipes: allRecipes,
         count: allRecipes.length,
+        ...(versionNote && { version_note: versionNote }),
         error: null,
       };
     }
@@ -181,6 +185,7 @@ export function superRecipes(query?: string): RecipesResult {
       success: true,
       recipes: filtered,
       count: filtered.length,
+      ...(versionNote && { version_note: versionNote }),
       error: null,
     };
   } catch (e) {

@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - Unreleased
+## [1.1.0] - 2026-02-15
 
 ### Added
 - Smart error hint when `files` param is confused with SQL FROM clause file resolution — suggests using absolute paths in FROM
@@ -14,6 +14,12 @@ All notable changes to this project will be documented in this file.
 - 8 tutorials imported from superkit: grok, subqueries, unnest, joins, sup_to_bash, super_db_update, moar_subqueries, chess-tiebreaks
 - 5 recipe files imported from superkit: array, format, integer, records, string
 - MCP resources for tutorials (`superdb://tutorials/{name}`), recipes (`superdb://recipes/{name}`), and grok patterns (`superdb://docs/grok-patterns`)
+- `version_note` field in content tool responses when runtime version differs from content target (v0.1.0)
+- `scheme` field in `VersionInfo` — classifies versions as `ymmdd`, `semver`, `sha`, or `unknown`
+
+### Fixed
+- Version comparison: YMMDD pre-release versions (e.g., 0.51231) are now correctly treated as older than semver releases (e.g., 0.1.0) — previously string comparison made them appear newer
+- Version mismatch warning for YMMDD runtimes now explains the pre-release scheme instead of just saying "older"
 
 ### Changed
 - Removed `super_validate` tool; migration hints now appear in `super_query` error responses
