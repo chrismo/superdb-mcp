@@ -2,15 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - 2026-02-14
+## [1.0.1] - Unreleased
 
 ### Added
 - Smart error hint when `files` param is confused with SQL FROM clause file resolution — suggests using absolute paths in FROM
+- Migration hint for `+` string concatenation removal — recommends f-string interpolation, `||`, or `concat()`
+- Migration docs for string concat with `+` removed (PR 6486) and dynamic `from` requiring f-strings (PR 6450)
 
 ### Changed
 - Removed `super_validate` tool; migration hints now appear in `super_query` error responses
 - `super_query` errors include a `suggestions` field with zq→SuperDB migration hints when applicable
 - Clarified `files` parameter description to distinguish pipeline input from SQL FROM clause usage
+- Moved dynamic `from` docs out of Lake-specific section — f-strings are general-purpose
 
 ## [1.0.0] - 2026-02-14
 
