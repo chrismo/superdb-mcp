@@ -20,7 +20,42 @@ Extract the version from the upgrade doc header:
 grep -o 'SuperDB Version [0-9.]*' /tmp/zq-to-super-upgrades-new.md | grep -o '[0-9.]*'
 ```
 
-### Phase 2: Compare with Current Bundled Docs
+### Phase 2: Breaking Change Scan
+
+This phase is **informational only** — it reports findings for human review, doesn't auto-update anything.
+
+**Step 1: Check asdf-superdb versions.txt**
+
+1. Fetch `https://raw.githubusercontent.com/chrismo/asdf-superdb/main/scripts/versions.txt` using curl
+2. Get the last synced SuperDB version from the upgrade doc frontmatter (`superdb_version` field, already extracted in Phase 1)
+3. Get the current `super` binary version via `super --version`
+4. Parse versions.txt to find all comment blocks containing "breaking" (case-insensitive) that appear **after** the last synced version's entries
+5. Report any found with their associated PR links
+
+**Step 2: Check LSP CHANGELOG**
+
+1. Fetch `https://raw.githubusercontent.com/chrismo/superdb-lsp/main/CHANGELOG.md` using curl
+2. Extract entries newer than the last synced SuperDB version
+3. Surface any "Changed", "Breaking", or "Removed" sections
+4. If CHANGELOG is unavailable or empty, note that and move on
+
+**Output this section in your summary:**
+
+```
+### Breaking Change Scan
+
+**asdf-superdb annotations (since {last_version}):**
+- [breaking] + no longer concats strings. || still working and concat added. (PR 6486)
+- (or: none found)
+
+**LSP CHANGELOG (since {last_version}):**
+- Changed: removed + operator for string concatenation
+- (or: no new entries / CHANGELOG not available)
+
+⚠️ Review these for migration guide updates before publishing.
+```
+
+### Phase 3: Compare with Current Bundled Docs
 
 **Note:** Bundled docs have YAML frontmatter that superkit originals don't have. Compare the body content only.
 
@@ -30,7 +65,7 @@ grep -o 'SuperDB Version [0-9.]*' /tmp/zq-to-super-upgrades-new.md | grep -o '[0
 4. Extract current bundled version from frontmatter: `superdb_version: "X.XXXXX"`
 5. Compare with fetched version from header: `SuperDB Version X.XXXXX`
 
-### Phase 3: Check LSP Release Version
+### Phase 4: Check LSP Release Version
 
 1. Fetch `https://api.github.com/repos/chrismo/superdb-lsp/releases/latest`
 2. Extract version from `tag_name` (format: `vX.XXXXX.X`)
@@ -40,7 +75,7 @@ grep -o 'SuperDB Version [0-9.]*' /tmp/zq-to-super-upgrades-new.md | grep -o '[0
    - **docs-ahead**: doc version > LSP version (docs updated, LSP not released yet)
    - **docs-behind**: doc version < LSP version (need to sync docs)
 
-### Phase 4: Update if Docs Changed
+### Phase 5: Update if Docs Changed
 
 If fetched docs differ from current:
 
@@ -110,7 +145,7 @@ If fetched docs differ from current:
    git push
    ```
 
-### Phase 5: Report Summary
+### Phase 6: Report Summary
 
 Output a summary:
 
