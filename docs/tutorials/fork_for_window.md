@@ -182,21 +182,94 @@ us-east-1b 1
 us-east-1c 2
 ```
 
+## Alternative: Self-Join for Row Numbering
+
+There's a pure SQL approach that doesn't require fork and works dynamically with
+any number of groups. The idea: for each record, count how many records in the
+same group have an id less than or equal to it. This simulates
+`ROW_NUMBER() OVER (PARTITION BY az ORDER BY id)`.
+
+```sql
+select a.id, a.az, count(*) as row_num
+from instances.sup a
+join instances.sup b on a.az = b.az and b.id <= a.id
+group by a.id, a.az
+```
+
+Step by step, for record `i-006` in `us-east-1c`:
+
+1. The self-join matches `i-006` against all `us-east-1c` records with
+   `id <= 'i-006'`: that's `i-005` and `i-006` itself.
+2. `count(*)` = 2, so `row_num` = 2.
+
+The full result:
+
+```
+id    az         row_num
+i-001 us-east-1a 1
+i-002 us-east-1a 2
+i-003 us-east-1a 3
+i-004 us-east-1b 1
+i-005 us-east-1c 1
+i-006 us-east-1c 2
+i-007 us-east-1c 3
+i-008 us-east-1c 4
+```
+
+Now filter to keep only the first 2 per group:
+
+```sql
+with ranked as (
+  select a.id, a.az, count(*) as row_num
+  from instances.sup a
+  join instances.sup b on a.az = b.az and b.id <= a.id
+  group by a.id, a.az
+)
+select id, az from ranked
+where row_num <= 2
+order by az, id
+```
+
+```
+id    az
+i-001 us-east-1a
+i-002 us-east-1a
+i-004 us-east-1b
+i-005 us-east-1c
+i-006 us-east-1c
+```
+
+Same result as fork, but no hardcoded AZ names — works with any number of
+groups dynamically.
+
 ## Trade-offs
 
-**The fork branches are static.** You need to know the group values (AZ names)
-ahead of time and write one branch per group. This is fine when:
+**Fork** is simple and fast (linear scan per branch), but requires hardcoding
+group values. Best when groups are known and stable (like AZs in a region).
 
-- The groups are known and stable (like AZs in a region)
-- The number of groups is small
+**Self-join** is dynamic and handles any number of groups automatically, but
+is O(n^2) per group since every record is joined against all peers with a
+smaller key. Fine for small datasets, potentially slow for large ones.
 
-It's less ideal when groups are dynamic or numerous. In those cases, you'd need
-to first query for distinct group values, then build the fork dynamically — or
-wait for window function support.
+**With window functions** ([brimdata/super#5921][issue]), the query would be
+both dynamic and efficient — handling any number of groups with a single linear
+pass and supporting sophisticated ranking (e.g., ordering within groups by
+launch time, instance type preference, etc.).
 
-**With window functions**, the query would handle any number of groups
-automatically and support more sophisticated ranking (e.g., ordering within
-groups by launch time, instance type preference, etc.).
+| Approach         | Dynamic groups? | Time complexity  | Notes                                      |
+|------------------|-----------------|------------------|--------------------------------------------|
+| Fork             | No              | O(n) per branch  | Groups must be hardcoded                   |
+| Self-join        | Yes             | O(n^2) per group | Every record joined against its group peers |
+| Window functions | Yes             | O(n log n)       | Sort + single pass (not yet available)     |
+
+For a refresher on what those mean in practice
+([Big O notation](https://en.wikipedia.org/wiki/Big_O_notation)):
+
+| Notation   | Name        | 100 records | 10,000 records | Growth        |
+|------------|-------------|-------------|----------------|---------------|
+| O(n)       | Linear      | 100         | 10,000         | Scales nicely |
+| O(n log n) | Linearithmic| ~664        | ~132,877       | Typical sort  |
+| O(n^2)     | Quadratic   | 10,000      | 100,000,000    | Gets slow fast|
 
 ## Full Example
 
