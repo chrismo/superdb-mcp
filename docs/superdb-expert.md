@@ -151,7 +151,7 @@ group by net;
 
 ### PostgreSQL-Compatible Features
 
-- Window functions (e.g., ROW_NUMBER(), RANK(), LAG(), LEAD())
+- Window functions are **not yet implemented** (planned post-GA, see [#5921](https://github.com/brimdata/super/issues/5921))
 - Advanced JOIN types (LEFT, RIGHT, FULL OUTER, CROSS)
 - Aggregate functions (COUNT, SUM, AVG, MIN, MAX, STRING_AGG)
 - CASE expressions and conditional logic
@@ -183,7 +183,7 @@ switch
   case a == 2 ( put v:='two' )
   case a == 1 ( put v:='one' )
   case a == 3 ( values null )
-  case true ( put a:=-1, count:=count() )
+  case true ( put a:=-1 )
 ```
 
 **Adding fields with switch:**
@@ -363,18 +363,6 @@ FROM customers c
 JOIN customer_totals ct ON c.id = ct.customer_id
 WHERE ct.yearly_total > 1000;
 " orders.json
-```
-
-#### Window functions
-```bash
-super -s -c "
-SELECT
-  name,
-  salary,
-  RANK() OVER (ORDER BY salary DESC) as salary_rank,
-  LAG(salary) OVER (ORDER BY salary) as prev_salary
-FROM employees
-" employees.json
 ```
 
 #### Mixed SQL and pipe syntax
@@ -566,8 +554,8 @@ echo "$data" | super -S -c "head 1" -
 echo "$data" | super -s -c "put types:=typeof(this)" -
 
 # Count records at each stage
-super -s -c "query | put stage1:=count()" data.json
-super -s -c "query | filter | put stage2:=count()" data.json
+super -s -c "query | aggregate count:=count()" data.json
+super -s -c "query | filter | aggregate count:=count()" data.json
 
 # Validate syntax without execution
 super -s -c "your query" -n
@@ -761,36 +749,23 @@ super -s -c "[1,null,2] | where this != null"
 super -s -c "unnest this | where this != null"
 ```
 
-## Aggregate Functions: Expression vs Operator Context
+## Aggregate Functions
 
-Aggregate functions in SuperDB work in two fundamentally different ways.
-**Expression context** produces output for each input (incremental), while
-**operator context** produces a single summary.
+Aggregate functions (`count()`, `sum()`, `avg()`, `min()`, `max()`, `collect()`,
+etc.) can **only** be used inside `aggregate`/`summarize` operators. Using them
+in expression context (e.g., `put row:=count()`) is an error:
 
-Reference: https://superdb.org/book/super-sql/expressions/aggregates.html
-
-### Expression Context: Incremental Output
-
-Produces one output per input, maintaining state across the stream. Use for
-running totals, sequential IDs, or accumulating values.
-
-```bash
-# Running sum (accumulates with each input)
-echo '{"amount":10}
-{"amount":20}
-{"amount":30}' |
-  super -j -c "put running_total:=sum(amount)" -
-
-# Output:
-{"amount":10,"running_total":10}
-{"amount":20,"running_total":30}
-{"amount":30,"running_total":60}
+```
+call to aggregate function in non-aggregate context
 ```
 
-### Aggregate Operator Context: Summary Output
+This was changed in [PR #6355](https://github.com/brimdata/super/pull/6355).
+Earlier versions of SuperDB/Zed allowed "streaming aggregations" in expression
+context, but this was removed for SQL compatibility and parallelization.
 
-With **`aggregate`** (or `summarize`), produces a single output summarizing all
-inputs. Better performance, can be parallelized.
+### Aggregate / Summarize: Summary Output
+
+Use `aggregate` (or `summarize`) to produce summary output. Can be parallelized.
 
 ```bash
 # Single summary across all records
@@ -812,3 +787,32 @@ echo '{"category":"A","amount":10}
 {"category":"A","total":25}
 {"category":"B","total":20}
 ```
+
+### The `count` Operator (Row Numbering)
+
+For sequential row numbering — the most common former use of expression-context
+`count()` — use the **`count` operator** ([PR #6344](https://github.com/brimdata/super/pull/6344)):
+
+```bash
+# Default: wraps input in "that" field, adds "count" field
+super -s -c "values 1,2,3 | count"
+# {that:1,count:1}
+# {that:2,count:2}
+# {that:3,count:3}
+
+# Custom record expression with count alias
+super -s -c "values 1,2,3 | count {value:this, c}"
+# {value:1,c:1}
+# {value:2,c:2}
+# {value:3,c:3}
+
+# Spread input fields alongside the count
+super -s -c "values {a:1},{b:2},{c:3} | count | {row:count,...that}"
+# {row:1,a:1}
+# {row:2,b:2}
+# {row:3,c:3}
+```
+
+**No replacement exists** for other streaming patterns (`sum`, `avg`, `min`,
+`max`, progressive `collect`). Window functions are planned post-GA
+([#5921](https://github.com/brimdata/super/issues/5921)).
