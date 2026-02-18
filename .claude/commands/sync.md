@@ -53,6 +53,30 @@ This phase is **informational only** — it reports findings for human review, d
 3. Surface any "Changed", "Breaking", or "Removed" sections
 4. If CHANGELOG is unavailable or empty, note that and move on
 
+**Step 3: Investigate breaking changes with research.sh**
+
+If breaking changes were found in Steps 1-2, use `./scripts/research.sh` to gather context:
+
+```bash
+# Search issues/PRs for details on a breaking change
+./scripts/research.sh search "string concatenation"
+
+# Find the relevant commits
+./scripts/research.sh commits "concat operator"
+
+# Read the full issue/PR discussion
+./scripts/research.sh issue 6486
+
+# Check if docs were updated for the change
+./scripts/research.sh code "concat"
+
+# Compare doc pages across releases
+./scripts/research.sh docs super-sql/expressions/intro --ref v0.1.0
+./scripts/research.sh docs super-sql/expressions/intro --ref main
+```
+
+This helps understand the scope and intent of breaking changes before updating the migration guide.
+
 **Output this section in your summary:**
 
 ```
@@ -198,6 +222,7 @@ Output a summary:
 
 ## Notes
 
+- `./scripts/research.sh` is available for investigating the brimdata/super repo (issues, PRs, commits, code, docs). All read-only. Run `./scripts/research.sh --help` for usage.
 - The doc version comes from the `zq-to-super-upgrades.md` header
 - LSP version format: `0.YMMDD.P` (Y=last digit of year, MM=month, DD=day, P=patch)
 - MCP version should match doc version with its own patch number
