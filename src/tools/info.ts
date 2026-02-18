@@ -62,6 +62,7 @@ export interface HelpResult {
   success: boolean;
   topic: string;
   content: string;
+  web_url?: string;
   version_note?: string;
   error: string | null;
 }
@@ -263,6 +264,16 @@ function listTutorials(): string[] {
   }
 }
 
+const SITE_BASE = 'https://chrismo.github.io/superkit';
+
+const webUrls: Record<string, string> = {
+  'expert': `${SITE_BASE}/expert-guide`,
+  'upgrade': `${SITE_BASE}/upgrade-guide`,
+  'upgrade-guide': `${SITE_BASE}/upgrade-guide`,
+  'migration': `${SITE_BASE}/upgrade-guide`,
+  'tutorials': `${SITE_BASE}/tutorials`,
+};
+
 export function superHelp(topic: string): HelpResult {
   const topics: Record<string, string> = {
     'expert': 'superdb-expert.md',
@@ -284,6 +295,7 @@ export function superHelp(topic: string): HelpResult {
       success: true,
       topic,
       content: `# Available Tutorials\n\nUse \`super_help\` with topic \`"tutorial:<name>"\` to read a specific tutorial.\n\n${listing}`,
+      web_url: webUrls['tutorials'],
       ...(versionNote && { version_note: versionNote }),
       error: null,
     };
@@ -304,10 +316,12 @@ export function superHelp(topic: string): HelpResult {
       try {
         const filepath = join(tutorialsDir, candidate);
         const content = readFileSync(filepath, 'utf-8');
+        const resolvedName = basename(candidate, '.md');
         return {
           success: true,
           topic,
           content,
+          web_url: `${SITE_BASE}/tutorials/${resolvedName}`,
           ...(versionNote && { version_note: versionNote }),
           error: null,
         };
@@ -348,6 +362,7 @@ export function superHelp(topic: string): HelpResult {
       success: true,
       topic,
       content,
+      ...(webUrls[normalized] && { web_url: webUrls[normalized] }),
       ...(versionNote && { version_note: versionNote }),
       error: null,
     };

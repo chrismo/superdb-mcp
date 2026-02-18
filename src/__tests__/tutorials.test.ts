@@ -10,6 +10,7 @@ describe('superHelp tutorials', () => {
     expect(result.content).toContain('tutorial:joins');
     expect(result.content).toContain('tutorial:subqueries');
     expect(result.content).toContain('tutorial:unnest');
+    expect(result.web_url).toContain('/tutorials');
   });
 
   it('reads a specific tutorial by name', () => {
@@ -17,6 +18,7 @@ describe('superHelp tutorials', () => {
     expect(result.success).toBe(true);
     expect(result.content).toContain('grok');
     expect(result.content.length).toBeGreaterThan(100);
+    expect(result.web_url).toContain('/tutorials/grok');
   });
 
   it('reads chess-tiebreaks tutorial', () => {
@@ -41,6 +43,7 @@ describe('superHelp tutorials', () => {
     const result = superHelp('expert');
     expect(result.success).toBe(true);
     expect(result.content).toContain('SuperDB');
+    expect(result.web_url).toContain('/expert-guide');
   });
 
   it('includes tutorials in error message for unknown topics', () => {

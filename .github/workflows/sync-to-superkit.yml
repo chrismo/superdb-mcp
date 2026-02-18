@@ -1,0 +1,81 @@
+name: Sync docs to superkit
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout superdb-mcp
+        uses: actions/checkout@v4
+
+      - name: Load deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SUPERKIT_DEPLOY_KEY }}
+
+      - name: Clone superkit
+        run: git clone git@github.com:chrismo/superkit.git superkit
+
+      - name: Sync docs
+        run: |
+          set -euo pipefail
+
+          SUPERKIT_DIR="superkit"
+          DOCS_DIR="docs"
+
+          transform_frontmatter() {
+            local src="$1" dst="$2" title="$3" nav_order="$4" parent="${5:-}"
+
+            # Extract metadata from existing frontmatter
+            description=$(sed -n '/^---$/,/^---$/{ /^description:/s/^description: *//p }' "$src")
+            superdb_version=$(sed -n '/^---$/,/^---$/{ /^superdb_version:/s/^superdb_version: *//p }' "$src")
+            last_updated=$(sed -n '/^---$/,/^---$/{ /^last_updated:/s/^last_updated: *//p }' "$src")
+
+            # Get body (everything after second ---)
+            body=$(awk '/^---$/{c++} c==2{found=1; next} found{print}' "$src")
+
+            # Write new file with Jekyll frontmatter
+            {
+              echo "---"
+              echo "title: \"$title\""
+              [ -n "$description" ] && echo "description: \"$description\""
+              echo "layout: default"
+              echo "nav_order: $nav_order"
+              [ -n "$parent" ] && echo "parent: Tutorials"
+              [ -n "$superdb_version" ] && echo "superdb_version: $superdb_version"
+              [ -n "$last_updated" ] && echo "last_updated: $last_updated"
+              echo "---"
+              printf '%s\n' "$body"
+            } > "$dst"
+          }
+
+          # Sync guide docs
+          transform_frontmatter "$DOCS_DIR/superdb-expert.md" "$SUPERKIT_DIR/expert-guide.md" "Expert Guide" 2
+          transform_frontmatter "$DOCS_DIR/zq-to-super-upgrades.md" "$SUPERKIT_DIR/upgrade-guide.md" "Upgrade Guide" 3
+
+          # Sync tutorials
+          nav=1
+          for f in "$DOCS_DIR"/tutorials/*.md; do
+            name=$(basename "$f" .md)
+            # Extract title from first # heading
+            heading=$(grep -m1 '^# ' "$f" | sed 's/^# //')
+            transform_frontmatter "$f" "$SUPERKIT_DIR/tutorials/${name}.md" "$heading" "$nav" "tutorials"
+            nav=$((nav + 1))
+          done
+
+          # Commit and push
+          cd "$SUPERKIT_DIR"
+          git config user.name "superdb-mcp-sync"
+          git config user.email "superdb-mcp-sync@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync"
+          else
+            git commit -m "Sync docs from superdb-mcp"
+            git push
+          fi

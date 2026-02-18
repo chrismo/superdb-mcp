@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- `web_url` field in `super_help` responses linking to online documentation at chrismo.github.io/superkit
+- GitHub Action to auto-sync docs to superkit repo for GitHub Pages deployment
+
 ## [1.1.0] - 2026-02-15 (targets SuperDB v0.1.0)
 
 ### Added
