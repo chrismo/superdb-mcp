@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-02-20 (targets SuperDB v0.1.0)
+
 ### Added
+- Expert doc section splitting: `super_help("expert")` now returns a slim overview (~80 lines) instead of the full 850-line document. Use `expert:<section>` (e.g. `expert:sql`, `expert:aggregates`) to fetch individual sections, or `expert:all` for the full document.
 - Character recipes: `sk_seq` (generate_series workaround), `sk_hex_digits`, `sk_chr`, `sk_alpha`
 - `web_url` field in `super_help` responses linking to online documentation at chrismo.github.io/superkit
 - GitHub Action to auto-sync docs to superkit repo for GitHub Pages deployment

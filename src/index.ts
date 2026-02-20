@@ -27,7 +27,7 @@ const docsDir = join(__dirname, '../docs');
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.1.0',
+    version: '1.2.0',
   },
   {
     capabilities: {
@@ -241,7 +241,7 @@ const tools = [
   // --- Documentation & Reference ---
   {
     name: 'super_help',
-    description: 'Get SuperDB documentation (content targets v0.1.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (syntax guide), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
+    description: 'Get SuperDB documentation (content targets v0.1.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (overview + section index), expert:<section> (e.g. expert:sql, expert:aggregates), expert:all (full document), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
     inputSchema: {
       type: 'object' as const,
       properties: {

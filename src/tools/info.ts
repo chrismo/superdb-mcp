@@ -11,6 +11,7 @@ import {
   VersionComparison,
 } from '../lib/version.js';
 import { runSuper } from '../lib/super.js';
+import { getExpertDoc, buildOverview } from '../lib/expert-sections.js';
 
 // Get paths
 const __filename = fileURLToPath(import.meta.url);
@@ -62,6 +63,7 @@ export interface HelpResult {
   success: boolean;
   topic: string;
   content: string;
+  sections?: Array<{ slug: string; title: string; lines: number }>;
   web_url?: string;
   version_note?: string;
   error: string | null;
@@ -276,7 +278,6 @@ const webUrls: Record<string, string> = {
 
 export function superHelp(topic: string): HelpResult {
   const topics: Record<string, string> = {
-    'expert': 'superdb-expert.md',
     'upgrade': 'zq-to-super-upgrades.md',
     'upgrade-guide': 'zq-to-super-upgrades.md',
     'migration': 'zq-to-super-upgrades.md',
@@ -284,6 +285,71 @@ export function superHelp(topic: string): HelpResult {
 
   const normalized = topic.toLowerCase();
   const versionNote = getVersionNote() ?? undefined;
+
+  // Handle expert doc topics: expert, expert:all, expert:<slug>
+  if (normalized === 'expert' || normalized.startsWith('expert:')) {
+    try {
+      const doc = getExpertDoc();
+      const webUrl = webUrls['expert'];
+      const suffix = normalized === 'expert' ? null : normalized.slice('expert:'.length);
+
+      // expert:all — full document
+      if (suffix === 'all') {
+        const filepath = join(docsDir, 'superdb-expert.md');
+        const content = readFileSync(filepath, 'utf-8');
+        return {
+          success: true,
+          topic,
+          content,
+          web_url: webUrl,
+          ...(versionNote && { version_note: versionNote }),
+          error: null,
+        };
+      }
+
+      // expert:<slug> — single section
+      if (suffix) {
+        const section = doc.sections.find(s => s.slug === suffix);
+        if (!section) {
+          const available = doc.sections.map(s => `expert:${s.slug}`).join(', ');
+          return {
+            success: false,
+            topic,
+            content: '',
+            error: `Unknown expert section: ${suffix}. Available sections: ${available}`,
+          };
+        }
+        return {
+          success: true,
+          topic,
+          content: section.content,
+          web_url: webUrl,
+          ...(versionNote && { version_note: versionNote }),
+          error: null,
+        };
+      }
+
+      // expert — overview with section index
+      const content = buildOverview(doc);
+      const sections = doc.sections.map(s => ({ slug: s.slug, title: s.title, lines: s.lines }));
+      return {
+        success: true,
+        topic,
+        content,
+        sections,
+        web_url: webUrl,
+        ...(versionNote && { version_note: versionNote }),
+        error: null,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        topic,
+        content: '',
+        error: `Failed to read expert documentation: ${e instanceof Error ? e.message : String(e)}`,
+      };
+    }
+  }
 
   // Handle "tutorials" topic — list available tutorials
   if (normalized === 'tutorials') {
@@ -343,6 +409,7 @@ export function superHelp(topic: string): HelpResult {
   if (!filename) {
     const tutorials = listTutorials();
     const allTopics = [
+      'expert',
       ...Object.keys(topics),
       'tutorials',
       ...tutorials.map(t => `tutorial:${t}`),
