@@ -694,7 +694,39 @@ There's very little jq syntax that is valid in SuperDB.
 
 - Do not use ` // 0 ` - this is only valid in jq, not in SuperDB. You can use coalesce instead.
 
-- SuperDB, like PostgreSQL, uses 1-based indexing. NEVER use `this[0]` in SuperDB, it won't work.
+- SuperDB uses **0-based indexing** by default. Use `pragma index_base = 1` to switch to 1-based indexing within a scope:
+
+```
+-- Default: 0-based
+values [10,20,30][0]   -- 10
+
+-- Switch to 1-based in a scope
+pragma index_base = 1
+values [10,20,30][1]   -- 10
+
+-- Pragmas are lexically scoped
+pragma index_base = 1
+values {
+  a: this[2:3],        -- 1-based: [20]
+  b: (
+    pragma index_base = 0
+    values this[0]     -- 0-based: 10
+  )
+}
+```
+
+## Pragmas
+
+Pragmas control language features and appear in declaration blocks with lexical scoping:
+
+```
+pragma <id> [ = <expr> ]
+```
+
+If `<expr>` is omitted, it defaults to `true`. Available pragmas:
+
+- **`index_base`** — `0` (default) for zero-based indexing, `1` for one-based indexing
+- **`pg`** — `false` (default, Google SQL semantics) or `true` (PostgreSQL semantics for GROUP BY identifier resolution)
 
 ## SuperDB Quoting Rules (Critical for Bash Integration)
 
