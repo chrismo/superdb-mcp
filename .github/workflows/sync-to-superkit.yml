@@ -13,6 +13,9 @@ jobs:
       - name: Checkout superdb-mcp
         uses: actions/checkout@v4
 
+      - name: Install SuperDB
+        uses: chrismo/asdf-superdb@main
+
       - name: Load deploy key
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -28,13 +31,30 @@ jobs:
           SUPERKIT_DIR="superkit"
           DOCS_DIR="docs"
 
+          # Extract a YAML frontmatter field value using super
+          fm_field() {
+            super -i line -f line -c "where grep(\"^$2:\", this) | values regexp_replace(this, \"^$2: *\", \"\")" "$1"
+          }
+
+          # Extract body (everything after second ---) using super
+          fm_body() {
+            local end_line
+            end_line=$(super -i line -f line -c 'count {line: this, n} | where line == "---" | tail 1 | values n' "$1")
+            super -i line -f line -c "count {line: this, n} | where n > $end_line | values line" "$1"
+          }
+
+          # Extract first # heading using super
+          fm_heading() {
+            super -i line -f line -c 'where grep("^# ", this) | head 1 | values regexp_replace(this, "^# ", "")' "$1"
+          }
+
           transform_frontmatter() {
             local src="$1" dst="$2" title="$3" nav_order="$4" parent="${5:-}"
 
-            # Extract metadata from existing frontmatter (values may already be quoted)
-            description=$(sed -n '/^---$/,/^---$/{ /^description:/s/^description: *//p }' "$src")
-            superdb_version=$(sed -n '/^---$/,/^---$/{ /^superdb_version:/s/^superdb_version: *//p }' "$src")
-            last_updated=$(sed -n '/^---$/,/^---$/{ /^last_updated:/s/^last_updated: *//p }' "$src")
+            local description superdb_version last_updated
+            description=$(fm_field "$src" description)
+            superdb_version=$(fm_field "$src" superdb_version)
+            last_updated=$(fm_field "$src" last_updated)
 
             # Write Jekyll frontmatter
             {
@@ -49,8 +69,8 @@ jobs:
               echo "---"
             } > "$dst"
 
-            # Append body (everything after second ---) directly to avoid variable size limits
-            awk '/^---$/{c++} c==2{found=1; next} found{print}' "$src" >> "$dst"
+            # Append body
+            fm_body "$src" >> "$dst"
           }
 
           # Sync guide docs
@@ -61,8 +81,7 @@ jobs:
           nav=1
           for f in "$DOCS_DIR"/tutorials/*.md; do
             name=$(basename "$f" .md)
-            # Extract title from first # heading
-            heading=$(grep -m1 '^# ' "$f" | sed 's/^# //')
+            heading=$(fm_heading "$f")
             transform_frontmatter "$f" "$SUPERKIT_DIR/tutorials/${name}.md" "$heading" "$nav" "tutorials"
             nav=$((nav + 1))
           done
