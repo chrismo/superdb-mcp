@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Character recipes: `sk_seq` (generate_series workaround), `sk_hex_digits`, `sk_chr`, `sk_alpha`
 - `web_url` field in `super_help` responses linking to online documentation at chrismo.github.io/superkit
 - GitHub Action to auto-sync docs to superkit repo for GitHub Pages deployment
 

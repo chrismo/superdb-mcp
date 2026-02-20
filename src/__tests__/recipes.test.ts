@@ -71,9 +71,30 @@ describe('superRecipes', () => {
     const result = superRecipes();
     const sourceFiles = new Set(result.recipes.map(r => r.source_file));
     expect(sourceFiles.has('array')).toBe(true);
+    expect(sourceFiles.has('character')).toBe(true);
     expect(sourceFiles.has('format')).toBe(true);
     expect(sourceFiles.has('integer')).toBe(true);
     expect(sourceFiles.has('records')).toBe(true);
     expect(sourceFiles.has('string')).toBe(true);
+  });
+
+  it('finds character recipes', () => {
+    const result = superRecipes('character');
+    expect(result.success).toBe(true);
+    const charRecipes = result.recipes.filter(r => r.source_file === 'character');
+    expect(charRecipes.length).toBe(4);
+    const names = charRecipes.map(r => r.name);
+    expect(names).toContain('sk_seq');
+    expect(names).toContain('sk_hex_digits');
+    expect(names).toContain('sk_chr');
+    expect(names).toContain('sk_alpha');
+  });
+
+  it('sk_chr has correct example', () => {
+    const result = superRecipes('sk_chr');
+    expect(result.count).toBe(1);
+    expect(result.recipes[0].args.length).toBe(1);
+    expect(result.recipes[0].args[0].name).toBe('code');
+    expect(result.recipes[0].examples).toEqual([{ i: "sk_chr(65)", o: "'A'" }]);
   });
 });
