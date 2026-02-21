@@ -1,9 +1,11 @@
 ---
-name: fork-for-window
+title: "Fork as a Window Function Workaround"
 description: "Using fork as a workaround for window functions to do per-group selection."
+layout: default
+nav_order: 3
+parent: Tutorials
 superdb_version: "0.1.0"
-last_updated: "2026-02-17"
-source: "https://github.com/chrismo/superkit/blob/main/doc/fork_for_window.md"
+last_updated: "2026-02-20"
 ---
 
 # Fork as a Window Function Workaround
@@ -21,17 +23,15 @@ You have a pool of available EC2 instances spread across availability zones.
 You need to pick instances while maximizing AZ distribution — taking an equal
 number from each zone rather than filling up from one.
 
-Sample data:
-
-```
-{id:'i-001', az:'us-east-1a'}
-{id:'i-002', az:'us-east-1a'}
-{id:'i-003', az:'us-east-1a'}
-{id:'i-004', az:'us-east-1b'}
-{id:'i-005', az:'us-east-1c'}
-{id:'i-006', az:'us-east-1c'}
-{id:'i-007', az:'us-east-1c'}
-{id:'i-008', az:'us-east-1c'}
+```mdtest-input instances.sup
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-003",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
+{id:"i-007",az:"us-east-1c"}
+{id:"i-008",az:"us-east-1c"}
 ```
 
 Distribution: 3 in `us-east-1a`, 1 in `us-east-1b`, 4 in `us-east-1c`.
@@ -59,29 +59,40 @@ from every branch are merged back together into a single stream.
 
 Here's the full query — we'll break it down step by step after:
 
+```mdtest-command
+super -s -c "
+  from instances.sup
+  | fork
+    ( where az=='us-east-1a' | head 2 )
+    ( where az=='us-east-1b' | head 2 )
+    ( where az=='us-east-1c' | head 2 )
+  | sort az, id
+"
 ```
-from instances.sup
-| fork
-  ( where az=='us-east-1a' | head 2 )
-  ( where az=='us-east-1b' | head 2 )
-  ( where az=='us-east-1c' | head 2 )
-| sort az, id
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
 ```
 
 ### Step by Step
 
 **Step 1: `from instances.sup`** — reads all 8 records into the stream:
 
+```mdtest-command
+super -s -c "from instances.sup"
 ```
-id    az
-i-001 us-east-1a
-i-002 us-east-1a
-i-003 us-east-1a
-i-004 us-east-1b
-i-005 us-east-1c
-i-006 us-east-1c
-i-007 us-east-1c
-i-008 us-east-1c
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-003",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
+{id:"i-007",az:"us-east-1c"}
+{id:"i-008",az:"us-east-1c"}
 ```
 
 **Step 2: `fork`** — sends all 8 records into each of three branches. Each
@@ -90,10 +101,12 @@ branch sees the full input and processes it independently.
 **Branch 1:** `where az=='us-east-1a'` filters to 3 records, then `head 2`
 keeps the first 2:
 
+```mdtest-command
+super -s -c "from instances.sup | where az=='us-east-1a' | head 2"
 ```
-id    az
-i-001 us-east-1a
-i-002 us-east-1a
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
 ```
 
 (i-003 was filtered out by `head 2`)
@@ -101,9 +114,11 @@ i-002 us-east-1a
 **Branch 2:** `where az=='us-east-1b'` filters to 1 record, `head 2` returns
 what's available:
 
+```mdtest-command
+super -s -c "from instances.sup | where az=='us-east-1b' | head 2"
 ```
-id    az
-i-004 us-east-1b
+```mdtest-output
+{id:"i-004",az:"us-east-1b"}
 ```
 
 Only 1 instance exists in this AZ. `head 2` doesn't error or pad — it just
@@ -112,10 +127,12 @@ returns what's there.
 **Branch 3:** `where az=='us-east-1c'` filters to 4 records, `head 2` keeps
 the first 2:
 
+```mdtest-command
+super -s -c "from instances.sup | where az=='us-east-1c' | head 2"
 ```
-id    az
-i-005 us-east-1c
-i-006 us-east-1c
+```mdtest-output
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
 ```
 
 (i-007 and i-008 were filtered out by `head 2`)
@@ -128,13 +145,22 @@ interleaved differently on each run. This is why the final `sort` matters.
 **Step 4: `sort az, id`** — sorts the combined results for clean, predictable
 output:
 
+```mdtest-command
+super -s -c "
+  from instances.sup
+  | fork
+    ( where az=='us-east-1a' | head 2 )
+    ( where az=='us-east-1b' | head 2 )
+    ( where az=='us-east-1c' | head 2 )
+  | sort az, id
+"
 ```
-id    az
-i-001 us-east-1a
-i-002 us-east-1a
-i-004 us-east-1b
-i-005 us-east-1c
-i-006 us-east-1c
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
 ```
 
 2 from `us-east-1a`, 1 from `us-east-1b` (all it had), 2 from `us-east-1c` —
@@ -144,17 +170,15 @@ as balanced as possible given the available pool.
 
 Without fork, you might try:
 
+```mdtest-command
+super -s -c "from instances.sup | sort az, id | head 5"
 ```
-from instances.sup | sort az, id | head 5
-```
-
-```
-id    az
-i-001 us-east-1a
-i-002 us-east-1a
-i-003 us-east-1a
-i-004 us-east-1b
-i-005 us-east-1c
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-003",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
 ```
 
 All 3 from `us-east-1a`, the 1 from `us-east-1b`, and only 1 from `us-east-1c`.
@@ -165,21 +189,21 @@ distributing evenly.
 
 You can check the balance of your selection by piping through an aggregate:
 
+```mdtest-command
+super -s -c "
+  from instances.sup
+  | fork
+    ( where az=='us-east-1a' | head 2 )
+    ( where az=='us-east-1b' | head 2 )
+    ( where az=='us-east-1c' | head 2 )
+  | aggregate count:=count() by az
+  | sort az
+"
 ```
-from instances.sup
-| fork
-  ( where az=='us-east-1a' | head 2 )
-  ( where az=='us-east-1b' | head 2 )
-  ( where az=='us-east-1c' | head 2 )
-| aggregate count:=count() by az
-| sort az
-```
-
-```
-az         count
-us-east-1a 2
-us-east-1b 1
-us-east-1c 2
+```mdtest-output
+{az:"us-east-1a",count:2}
+{az:"us-east-1b",count:1}
+{az:"us-east-1c",count:2}
 ```
 
 ## Alternative: Self-Join for Row Numbering
@@ -189,11 +213,24 @@ any number of groups. The idea: for each record, count how many records in the
 same group have an id less than or equal to it. This simulates
 `ROW_NUMBER() OVER (PARTITION BY az ORDER BY id)`.
 
-```sql
-select a.id, a.az, count(*) as row_num
-from instances.sup a
-join instances.sup b on a.az = b.az and b.id <= a.id
-group by a.id, a.az
+```mdtest-command
+super -s -c "
+  select a.id, a.az, count(*) as row_num
+  from instances.sup a
+  join instances.sup b on a.az = b.az and b.id <= a.id
+  group by a.id, a.az
+  order by a.az, a.id
+"
+```
+```mdtest-output
+{id:"i-001",az:"us-east-1a",row_num:1}
+{id:"i-002",az:"us-east-1a",row_num:2}
+{id:"i-003",az:"us-east-1a",row_num:3}
+{id:"i-004",az:"us-east-1b",row_num:1}
+{id:"i-005",az:"us-east-1c",row_num:1}
+{id:"i-006",az:"us-east-1c",row_num:2}
+{id:"i-007",az:"us-east-1c",row_num:3}
+{id:"i-008",az:"us-east-1c",row_num:4}
 ```
 
 Step by step, for record `i-006` in `us-east-1c`:
@@ -202,41 +239,27 @@ Step by step, for record `i-006` in `us-east-1c`:
    `id <= 'i-006'`: that's `i-005` and `i-006` itself.
 2. `count(*)` = 2, so `row_num` = 2.
 
-The full result:
-
-```
-id    az         row_num
-i-001 us-east-1a 1
-i-002 us-east-1a 2
-i-003 us-east-1a 3
-i-004 us-east-1b 1
-i-005 us-east-1c 1
-i-006 us-east-1c 2
-i-007 us-east-1c 3
-i-008 us-east-1c 4
-```
-
 Now filter to keep only the first 2 per group:
 
-```sql
-with ranked as (
-  select a.id, a.az, count(*) as row_num
-  from instances.sup a
-  join instances.sup b on a.az = b.az and b.id <= a.id
-  group by a.id, a.az
-)
-select id, az from ranked
-where row_num <= 2
-order by az, id
+```mdtest-command
+super -s -c "
+  with ranked as (
+    select a.id, a.az, count(*) as row_num
+    from instances.sup a
+    join instances.sup b on a.az = b.az and b.id <= a.id
+    group by a.id, a.az
+  )
+  select id, az from ranked
+  where row_num <= 2
+  order by az, id
+"
 ```
-
-```
-id    az
-i-001 us-east-1a
-i-002 us-east-1a
-i-004 us-east-1b
-i-005 us-east-1c
-i-006 us-east-1c
+```mdtest-output
+{id:"i-001",az:"us-east-1a"}
+{id:"i-002",az:"us-east-1a"}
+{id:"i-004",az:"us-east-1b"}
+{id:"i-005",az:"us-east-1c"}
+{id:"i-006",az:"us-east-1c"}
 ```
 
 Same result as fork, but no hardcoded AZ names — works with any number of
@@ -270,33 +293,3 @@ For a refresher on what those mean in practice
 | O(n)       | Linear      | 100         | 10,000         | Scales nicely |
 | O(n log n) | Linearithmic| ~664        | ~132,877       | Typical sort  |
 | O(n^2)     | Quadratic   | 10,000      | 100,000,000    | Gets slow fast|
-
-## Full Example
-
-Save the sample data:
-
-```bash
-cat > /tmp/instances.sup << 'EOF'
-{id:'i-001', az:'us-east-1a'}
-{id:'i-002', az:'us-east-1a'}
-{id:'i-003', az:'us-east-1a'}
-{id:'i-004', az:'us-east-1b'}
-{id:'i-005', az:'us-east-1c'}
-{id:'i-006', az:'us-east-1c'}
-{id:'i-007', az:'us-east-1c'}
-{id:'i-008', az:'us-east-1c'}
-EOF
-```
-
-Pick 2 per AZ:
-
-```bash
-super -f table -c "
-  from '/tmp/instances.sup'
-  | fork
-    ( where az=='us-east-1a' | head 2 )
-    ( where az=='us-east-1b' | head 2 )
-    ( where az=='us-east-1c' | head 2 )
-  | sort az, id
-"
-```
