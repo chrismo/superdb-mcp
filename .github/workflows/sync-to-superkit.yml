@@ -74,15 +74,16 @@ jobs:
           }
 
           # Sync guide docs
-          transform_frontmatter "$DOCS_DIR/superdb-expert.md" "$SUPERKIT_DIR/expert-guide.md" "Expert Guide" 2
-          transform_frontmatter "$DOCS_DIR/zq-to-super-upgrades.md" "$SUPERKIT_DIR/upgrade-guide.md" "Upgrade Guide" 3
+          mkdir -p "$SUPERKIT_DIR/_build/tutorials"
+          transform_frontmatter "$DOCS_DIR/superdb-expert.md" "$SUPERKIT_DIR/_build/expert-guide.md" "Expert Guide" 2
+          transform_frontmatter "$DOCS_DIR/zq-to-super-upgrades.md" "$SUPERKIT_DIR/_build/upgrade-guide.md" "Upgrade Guide" 3
 
           # Sync tutorials
           nav=1
           for f in "$DOCS_DIR"/tutorials/*.md; do
             name=$(basename "$f" .md)
             heading=$(fm_heading "$f")
-            transform_frontmatter "$f" "$SUPERKIT_DIR/tutorials/${name}.md" "$heading" "$nav" "tutorials"
+            transform_frontmatter "$f" "$SUPERKIT_DIR/_build/tutorials/${name}.md" "$heading" "$nav" "tutorials"
             nav=$((nav + 1))
           done
 
