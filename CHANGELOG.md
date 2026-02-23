@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Escape recipes (`docs/recipes/escape.spq`): `sk_csv_field`, `sk_csv_row`, `sk_shell_quote`, `sk_tsv_field` for safe output formatting
+- Shell recipe type: recipes can now have `type:"shell"` with a `snippet` field for documenting CLI/subprocess patterns
+- 4 shell recipes for safe text ingestion via `-i line`: `safe_text_to_record`, `safe_text_to_string`, `safe_multiline_to_record`, `safe_append_to_sup_file`
+
 ## [1.2.0] - 2026-02-20 (targets SuperDB v0.1.0)
 
 ### Added

@@ -24,6 +24,7 @@ export interface RecipeFunction {
   description: string;
   args: RecipeArg[];
   examples: RecipeExample[];
+  snippet?: string;
   source_file: string;
 }
 
@@ -132,12 +133,16 @@ function parseSkdocObject(raw: string, sourceFile: string): RecipeFunction | nul
     }
   }
 
+  // Parse snippet (uses single quotes to avoid double-quote escaping issues)
+  const snippetMatch = raw.match(/snippet:'([^']+)'/);
+
   return {
     name: nameMatch[1],
     type: typeMatch[1],
     description: descMatch[1],
     args,
     examples,
+    ...(snippetMatch && { snippet: snippetMatch[1] }),
     source_file: sourceFile,
   };
 }

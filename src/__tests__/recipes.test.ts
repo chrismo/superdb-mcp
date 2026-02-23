@@ -13,7 +13,7 @@ describe('superRecipes', () => {
     const result = superRecipes();
     for (const r of result.recipes) {
       expect(r.name).toBeTruthy();
-      expect(r.type).toMatch(/^(func|op)$/);
+      expect(r.type).toMatch(/^(func|op|shell)$/);
       expect(r.description).toBeTruthy();
       expect(r.source_file).toBeTruthy();
       expect(Array.isArray(r.args)).toBe(true);
@@ -72,10 +72,30 @@ describe('superRecipes', () => {
     const sourceFiles = new Set(result.recipes.map(r => r.source_file));
     expect(sourceFiles.has('array')).toBe(true);
     expect(sourceFiles.has('character')).toBe(true);
+    expect(sourceFiles.has('escape')).toBe(true);
     expect(sourceFiles.has('format')).toBe(true);
     expect(sourceFiles.has('integer')).toBe(true);
     expect(sourceFiles.has('records')).toBe(true);
     expect(sourceFiles.has('string')).toBe(true);
+  });
+
+  it('finds escape recipes including both func and shell types', () => {
+    const result = superRecipes('escape');
+    expect(result.success).toBe(true);
+    const escapeRecipes = result.recipes.filter(r => r.source_file === 'escape');
+    expect(escapeRecipes.length).toBe(8);
+    const funcs = escapeRecipes.filter(r => r.type === 'func');
+    const shells = escapeRecipes.filter(r => r.type === 'shell');
+    expect(funcs.length).toBe(4);
+    expect(shells.length).toBe(4);
+  });
+
+  it('shell recipes have snippet field', () => {
+    const result = superRecipes('safe_text_to_record');
+    expect(result.count).toBe(1);
+    expect(result.recipes[0].type).toBe('shell');
+    expect(result.recipes[0].snippet).toContain('-i line');
+    expect(result.recipes[0].snippet).toContain('super');
   });
 
   it('finds character recipes', () => {
