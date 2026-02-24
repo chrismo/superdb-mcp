@@ -80,7 +80,7 @@ fn sk_pad_right(s, pad_char, target_length): (
 -- TODO: skdoc_urldecode
 
 -- URL Decoder for SuperDB
--- Usage: super -I urldecode.spq -s -c 'values urldecode(this)' - <<< '"%2Ftavern%20test"'
+-- Usage: super -I urldecode.spq -s -c 'values sk_urldecode(this)' - <<< '"%2Ftavern%20test"'
 -- Or inline the definitions in your query
 
 -- Helper operator to decode a single segment after splitting on %
@@ -99,7 +99,7 @@ op sk_decode_seg s: (
 op sk_urldecode url: (
   split(url, "%")
     | unnest this
-    | decode_seg this
+    | sk_decode_seg this
     | collect(this)
     | join(this, "")
 )
