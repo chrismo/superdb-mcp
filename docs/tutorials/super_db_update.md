@@ -3,7 +3,7 @@ name: super-db-update
 description: "Workarounds for updating data in a SuperDB lake."
 superdb_version: "0.1.0"
 last_updated: "2026-02-15"
-source: "https://github.com/chrismo/superkit/blob/main/doc/super_db_update.md"
+web: "https://chrismo.github.io/superkit/_build/tutorials/super_db_update/"
 ---
 
 # Updating Data in a Lake

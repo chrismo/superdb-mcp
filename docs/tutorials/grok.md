@@ -3,7 +3,7 @@ name: grok
 description: "Tutorial on using the grok function for text parsing in SuperDB."
 superdb_version: "0.1.0"
 last_updated: "2026-02-15"
-source: "https://github.com/chrismo/superkit/blob/main/doc/grok.md"
+web: "https://chrismo.github.io/superkit/_build/tutorials/grok/"
 ---
 
 # grok

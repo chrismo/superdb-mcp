@@ -3,7 +3,7 @@ name: subqueries
 description: "Examples of correlated subqueries and derived table patterns in SuperDB."
 superdb_version: "0.1.0"
 last_updated: "2026-02-15"
-source: "https://github.com/chrismo/superkit/blob/main/doc/subqueries.md"
+web: "https://chrismo.github.io/superkit/_build/tutorials/subqueries/"
 ---
 
 # Subqueries

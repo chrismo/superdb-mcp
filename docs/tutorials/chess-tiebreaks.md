@@ -3,7 +3,7 @@ name: chess-tiebreaks
 description: "End-to-end tutorial parsing PGN chess data to find tie-break games."
 superdb_version: "0.1.0"
 last_updated: "2026-02-15"
-source: "https://github.com/chrismo/superkit/blob/main/doc/tutorial/chess-tiebreaks.md"
+web: "https://chrismo.github.io/superkit/_build/tutorials/chess-tiebreaks/"
 ---
 
 # Chess Tiebreaks

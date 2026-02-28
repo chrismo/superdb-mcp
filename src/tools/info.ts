@@ -266,7 +266,7 @@ function listTutorials(): string[] {
   }
 }
 
-const SITE_BASE = 'https://chrismo.github.io/superkit';
+const SITE_BASE = 'https://chrismo.github.io/superkit/_build';
 
 const webUrls: Record<string, string> = {
   'expert': `${SITE_BASE}/expert-guide`,

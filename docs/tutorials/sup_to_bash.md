@@ -3,7 +3,7 @@ name: sup-to-bash
 description: "Optimizing SuperDB output into Bash variables efficiently."
 superdb_version: "0.1.0"
 last_updated: "2026-02-15"
-source: "https://github.com/chrismo/superkit/blob/main/doc/sup_to_bash.md"
+web: "https://chrismo.github.io/superkit/_build/tutorials/sup_to_bash/"
 ---
 
 # Optimizing Sup Values into Bash Variables

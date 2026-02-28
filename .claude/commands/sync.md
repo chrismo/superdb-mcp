@@ -1,61 +1,39 @@
 # Sync SuperDB Docs
 
-Pull latest docs from superkit, check LSP version sync, update if changed, and prepare for npm publish.
+Check for upstream SuperDB breaking changes, verify LSP version sync, and push docs to superkit for web publishing.
 
 **This command runs autonomously. No user confirmation required.**
 
+## Context
+
+This repo (superdb-mcp) is the **authoritative source** for all docs, tutorials, recipes, and grok patterns. Superkit consumes them for web publishing. The upstream SuperDB repo (brimdata/super) may introduce breaking changes that need to be reflected in the migration guide and expert doc.
+
 ## Execution Plan
 
-### Phase 1: Fetch Latest Content from Superkit
-
-Use curl to get the exact raw content (WebFetch summarizes, we need exact):
-
-```bash
-# Core docs
-curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/superdb-expert.md > /tmp/superdb-expert-new.md
-curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/zq-to-super-upgrades.md > /tmp/zq-to-super-upgrades-new.md
-
-# Grok patterns
-curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/bin/skgrok.jsup > /tmp/grok-patterns-new.sup
-
-# Tutorials
-for doc in grok subqueries unnest joins sup_to_bash super_db_update moar_subqueries; do
-  curl -sS "https://raw.githubusercontent.com/chrismo/superkit/main/doc/${doc}.md" > "/tmp/tutorial-${doc}-new.md"
-done
-curl -sS https://raw.githubusercontent.com/chrismo/superkit/main/doc/tutorial/chess-tiebreaks.md > /tmp/tutorial-chess-tiebreaks-new.md
-
-# Recipes
-for recipe in array format integer records string; do
-  curl -sS "https://raw.githubusercontent.com/chrismo/superkit/main/src/${recipe}.spq" > "/tmp/recipe-${recipe}-new.spq"
-done
-```
-
-Extract the version from the upgrade doc header:
-```bash
-grep -o 'SuperDB Version [0-9.]*' /tmp/zq-to-super-upgrades-new.md | grep -o '[0-9.]*'
-```
-
-### Phase 2: Breaking Change Scan
+### Phase 1: Breaking Change Scan
 
 This phase is **informational only** — it reports findings for human review, doesn't auto-update anything.
 
-**Step 1: Check asdf-superdb versions.txt**
+**Step 1: Extract current doc version**
+
+Read the frontmatter from `docs/zq-to-super-upgrades.md` to get the current `superdb_version`.
+
+**Step 2: Check asdf-superdb versions.txt**
 
 1. Fetch `https://raw.githubusercontent.com/chrismo/asdf-superdb/main/scripts/versions.txt` using curl
-2. Get the last synced SuperDB version from the upgrade doc frontmatter (`superdb_version` field, already extracted in Phase 1)
-3. Parse versions.txt to find all comment blocks containing "breaking" (case-insensitive) that appear **after** the last synced version's entries
-4. Report any found with their associated PR links
+2. Parse versions.txt to find all comment blocks containing "breaking" (case-insensitive) that appear **after** the current doc version's entries
+3. Report any found with their associated PR links
 
-**Step 2: Check LSP CHANGELOG**
+**Step 3: Check LSP CHANGELOG**
 
 1. Fetch `https://raw.githubusercontent.com/chrismo/superdb-lsp/main/CHANGELOG.md` using curl
-2. Extract entries newer than the last synced SuperDB version
+2. Extract entries newer than the current doc version
 3. Surface any "Changed", "Breaking", or "Removed" sections
 4. If CHANGELOG is unavailable or empty, note that and move on
 
-**Step 3: Investigate breaking changes with research.sh**
+**Step 4: Investigate breaking changes with research.sh**
 
-If breaking changes were found in Steps 1-2, use `./scripts/research.sh` to gather context:
+If breaking changes were found in Steps 2-3, use `./scripts/research.sh` to gather context:
 
 ```bash
 # Search issues/PRs for details on a breaking change
@@ -93,20 +71,7 @@ This helps understand the scope and intent of breaking changes before updating t
 ⚠️ Review these for migration guide updates before publishing.
 ```
 
-### Phase 3: Compare with Current Bundled Content
-
-**Note:** Bundled docs have YAML frontmatter that superkit originals don't have. Compare the body content only.
-
-1. Read current `docs/superdb-expert.md` and `docs/zq-to-super-upgrades.md`
-2. Strip YAML frontmatter (everything between `---` markers at the top) for comparison
-3. Compare body content with fetched files
-4. Extract current bundled version from frontmatter: `superdb_version: "X.XXXXX"`
-5. Compare with fetched version from header: `SuperDB Version X.XXXXX`
-6. Compare `docs/grok-patterns.sup` with fetched grok patterns
-7. Compare each tutorial in `docs/tutorials/` with fetched tutorials (strip frontmatter for comparison)
-8. Compare each recipe in `docs/recipes/` with fetched recipes
-
-### Phase 4: Check LSP Release Version
+### Phase 2: Check LSP Release Version
 
 1. Fetch `https://api.github.com/repos/chrismo/superdb-lsp/releases/latest`
 2. Extract version from `tag_name` (format: `vX.XXXXX.X`)
@@ -116,114 +81,62 @@ This helps understand the scope and intent of breaking changes before updating t
    - **docs-ahead**: doc version > LSP version (docs updated, LSP not released yet)
    - **docs-behind**: doc version < LSP version (need to sync docs)
 
-### Phase 5: Update if Docs Changed
+### Phase 3: Push Docs to Superkit
 
-If fetched docs differ from current:
+Check if superkit needs updated docs for web publishing.
 
-1. **Update docs** (preserve YAML frontmatter format):
+1. Determine which doc files exist locally:
+   - `docs/superdb-expert.md`
+   - `docs/zq-to-super-upgrades.md`
+   - `docs/grok-patterns.sup`
+   - `docs/tutorials/*.md`
+   - `docs/recipes/*.spq`
 
-   For `docs/superdb-expert.md`, prepend frontmatter:
-   ```yaml
-   ---
-   name: superdb-expert
-   description: "Expert guide for SuperDB queries and data transformations. Covers syntax, patterns, and best practices."
-   superdb_version: "X.XXXXX"
-   last_updated: "YYYY-MM-DD"
-   source: "https://github.com/chrismo/superkit/blob/main/doc/superdb-expert.md"
-   ---
-   ```
-
-   For `docs/zq-to-super-upgrades.md`, prepend frontmatter:
-   ```yaml
-   ---
-   name: zq-to-super-upgrades
-   description: "Migration guide from zq to SuperDB. Covers all breaking changes and syntax updates."
-   superdb_version: "X.XXXXX"
-   last_updated: "YYYY-MM-DD"
-   source: "https://github.com/chrismo/superkit/blob/main/doc/zq-to-super-upgrades.md"
-   ---
-   ```
-
-   Then append the fetched content (stripping any duplicate header if present).
-
-2. **Update grok patterns** if changed:
-   - Copy fetched file to `docs/grok-patterns.sup`
-
-3. **Update tutorials** if changed:
-   - For each tutorial, prepend YAML frontmatter (matching existing pattern in `docs/tutorials/`) and copy to `docs/tutorials/`
-   - Frontmatter fields: name, description, superdb_version, last_updated, source
-
-4. **Update recipes** if changed:
-   - Copy fetched .spq files to `docs/recipes/`
-
-5. **Determine new version**:
-   - Extract doc version from upgrade doc header (e.g., `0.51232`)
-   - Read current version from `package.json`
-   - If doc version changed: new version = `{doc_version}.0`
-   - If only doc content changed (same version): increment patch (e.g., `0.51231.1` → `0.51231.2`)
-
-3. **Update package.json**:
-   - Change `"version": "X.X.X"` to new version
-
-4. **Update src/index.ts**:
-   - Change `version: 'X.X.X'` to new version
-
-5. **Update CHANGELOG.md**:
-   - Add new entry at top (after header) with format:
-   ```markdown
-   ## [X.X.X] - YYYY-MM-DD
-
-   ### Changed
-   - Synced docs from superkit (SuperDB version X.XXXXX)
-   ```
-
-6. **Commit**:
+2. Check superkit repo structure to see where it expects to receive content from:
    ```bash
-   git add docs/ package.json src/index.ts CHANGELOG.md
-   git commit -m "Sync docs from superkit (SuperDB X.XXXXX)
-
-   - Updated superdb-expert.md
-   - Updated zq-to-super-upgrades.md
-   - Version: X.X.X
-
-   🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+   curl -sS https://api.github.com/repos/chrismo/superkit/contents/ | python3 -c "import json,sys; [print(f['name'], f['type']) for f in json.load(sys.stdin)]"
    ```
 
-7. **Push**:
-   ```bash
-   git push
-   ```
+3. If superkit has a mechanism to pull from this repo (e.g., GitHub Action, script), just report that docs are ready.
 
-### Phase 6: Report Summary
+4. If superkit needs manual updates, report what would need to be pushed and suggest next steps. **Do not auto-push to superkit** — just report.
+
+**Output this section in your summary:**
+
+```
+### Superkit Sync
+- [Superkit is set up to pull from MCP repo automatically / Superkit needs manual update / etc.]
+- [List any files that have changed since last known sync]
+```
+
+### Phase 4: Report Summary
 
 Output a summary:
 
 ```
-## Sync Complete
+## Sync Report
 
 **Docs Version**: 0.XXXXX
 **LSP Version**: 0.XXXXX.X
-**MCP Version**: 0.XXXXX.X
-**Status**: [in-sync | docs-ahead | docs-behind]
+**MCP Version**: X.X.X
+**LSP Status**: [in-sync | docs-ahead | docs-behind]
 
 ### Breaking Change Scan
-[Include the full breaking change scan output from Phase 2 here]
+[Include the full breaking change scan output from Phase 1 here]
 
-### Changes
-- [list what was updated, or "No changes - docs already in sync"]
+### Superkit Sync
+[Include superkit sync status from Phase 3]
 
 ### Next Steps
-- [If breaking changes found]: Update migration guide in superkit before publishing
-- [If changes made, no breaking changes]: Ready for `npm publish`
-- [If docs-behind]: Consider running /sync in superkit first
+- [If breaking changes found]: Update migration guide and expert doc, then bump version
+- [If docs-behind]: Consider updating docs to match latest SuperDB release
+- [If everything in sync]: No action needed
 ```
 
 ## Notes
 
 - `./scripts/research.sh` is available for investigating the brimdata/super repo (issues, PRs, commits, code, docs). All read-only. Run `./scripts/research.sh --help` for usage.
-- The doc version comes from the `zq-to-super-upgrades.md` header
+- The doc version comes from the `zq-to-super-upgrades.md` frontmatter (`superdb_version` field)
 - LSP version format: `0.YMMDD.P` (Y=last digit of year, MM=month, DD=day, P=patch)
-- MCP version should match doc version with its own patch number
+- MCP version is independent — see CLAUDE.md versioning section
 - Always check LSP sync status even if docs haven't changed

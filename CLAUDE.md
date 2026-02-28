@@ -46,7 +46,7 @@ The server exposes two MCP resources from `docs/`:
 - `superdb://docs/expert` → `docs/superdb-expert.md` (query syntax guide)
 - `superdb://docs/upgrade-guide` → `docs/zq-to-super-upgrades.md` (migration guide)
 
-The authoritative source for these docs is [superkit](https://github.com/chrismo/superkit/tree/main/doc). Local copies are bundled so they ship with the npm package. Use `/sync` to pull the latest from superkit.
+This repo is the authoritative source for all docs. [Superkit](https://github.com/chrismo/superkit) consumes them for web publishing. Use `/sync` to check for upstream SuperDB breaking changes and verify LSP version sync.
 
 ### Environment Variables
 
