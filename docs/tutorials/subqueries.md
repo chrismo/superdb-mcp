@@ -92,7 +92,7 @@ super -s -c '
 {id:4,date:"2025-02-28",foo:9}
 ```
                                  
-`super` also supports SQL syntax, and these subqueries work:
+`super` also supports SQL syntax, and these subqueries work[^1]:
 
 ```mdtest-command
 super -s -c '
@@ -219,6 +219,9 @@ super -s -c '
 {id:1,date:"2025-02-27",score:3,name:"Moxie"}
 {id:4,date:"2025-02-28",score:9,name:"Sprocket"}
 ```
+
+[^1]: SQL subqueries that reference files re-read the file for each subquery,
+    which increases CPU usage and wall time compared to the piped approach.
 
 # as of versions
 

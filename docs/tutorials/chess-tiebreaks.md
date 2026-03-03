@@ -8,6 +8,10 @@ web: "https://chrismo.github.io/superkit/_build/tutorials/chess-tiebreaks/"
 
 # Chess Tiebreaks
 
+SuperDB isn't limited to JSON — it can ingest and transform plain text just as
+easily. This tutorial demonstrates parsing raw text input using `grok` patterns,
+reshaping records, and aggregating results to answer a real question.
+
 PGN (Portable Game Notation) is a plain text format for recording chess games.
 Each game has metadata in bracketed lines like `[White "LastName, FirstName"]`
 followed by the moves. Here we'll parse a tournament's PGN file to find players
