@@ -6,7 +6,7 @@ Check for upstream SuperDB breaking changes, verify LSP version sync, and push d
 
 ## Context
 
-This repo (superdb-mcp) is the **authoritative source** for all docs, tutorials, recipes, and grok patterns. Superkit consumes them for web publishing. The upstream SuperDB repo (brimdata/super) may introduce breaking changes that need to be reflected in the migration guide and expert doc.
+This repo (superdb-mcp) is the **authoritative source** for all docs, tutorials, recipes, and grok patterns. Superkit consumes them for web publishing via the `sync-to-superkit.yml` GitHub Action. The upstream SuperDB repo (brimdata/super) may introduce breaking changes that need to be reflected in the migration guide and expert doc.
 
 ## Execution Plan
 
@@ -74,58 +74,30 @@ This helps understand the scope and intent of breaking changes before updating t
 ### Phase 2: Check LSP Release Version
 
 1. Fetch `https://api.github.com/repos/chrismo/superdb-lsp/releases/latest`
-2. Extract version from `tag_name` (format: `vX.XXXXX.X`)
-3. Compare with doc version
+2. Extract version from `tag_name` (standard semver, e.g., `v0.2.0`)
+3. Compare with doc version using semver comparison
 4. Note sync status:
-   - **in-sync**: doc version matches LSP version (ignoring patch)
+   - **in-sync**: doc version matches LSP version
    - **docs-ahead**: doc version > LSP version (docs updated, LSP not released yet)
-   - **docs-behind**: doc version < LSP version (need to sync docs)
+   - **docs-behind**: doc version < LSP version (need to update docs)
 
-### Phase 3: Push Docs to Superkit
-
-Check if superkit needs updated docs for web publishing.
-
-1. Determine which doc files exist locally:
-   - `docs/superdb-expert.md`
-   - `docs/zq-to-super-upgrades.md`
-   - `docs/grok-patterns.sup`
-   - `docs/tutorials/*.md`
-   - `docs/recipes/*.spq`
-
-2. Check superkit repo structure to see where it expects to receive content from:
-   ```bash
-   curl -sS https://api.github.com/repos/chrismo/superkit/contents/ | python3 -c "import json,sys; [print(f['name'], f['type']) for f in json.load(sys.stdin)]"
-   ```
-
-3. If superkit has a mechanism to pull from this repo (e.g., GitHub Action, script), just report that docs are ready.
-
-4. If superkit needs manual updates, report what would need to be pushed and suggest next steps. **Do not auto-push to superkit** — just report.
-
-**Output this section in your summary:**
-
-```
-### Superkit Sync
-- [Superkit is set up to pull from MCP repo automatically / Superkit needs manual update / etc.]
-- [List any files that have changed since last known sync]
-```
-
-### Phase 4: Report Summary
+### Phase 3: Report Summary
 
 Output a summary:
 
 ```
 ## Sync Report
 
-**Docs Version**: 0.XXXXX
-**LSP Version**: 0.XXXXX.X
-**MCP Version**: X.X.X
+**Docs Version**: X.Y.Z (from frontmatter superdb_version)
+**LSP Version**: X.Y.Z (from latest GitHub release)
+**MCP Version**: X.Y.Z (from package.json)
 **LSP Status**: [in-sync | docs-ahead | docs-behind]
 
 ### Breaking Change Scan
 [Include the full breaking change scan output from Phase 1 here]
 
 ### Superkit Sync
-[Include superkit sync status from Phase 3]
+Docs are automatically pushed to superkit via the sync-to-superkit.yml GitHub Action on pushes to main that touch docs/.
 
 ### Next Steps
 - [If breaking changes found]: Update migration guide and expert doc, then bump version
@@ -137,6 +109,6 @@ Output a summary:
 
 - `./scripts/research.sh` is available for investigating the brimdata/super repo (issues, PRs, commits, code, docs). All read-only. Run `./scripts/research.sh --help` for usage.
 - The doc version comes from the `zq-to-super-upgrades.md` frontmatter (`superdb_version` field)
-- LSP version format: `0.YMMDD.P` (Y=last digit of year, MM=month, DD=day, P=patch)
+- All versions (SuperDB, LSP, MCP) use standard semver
 - MCP version is independent — see CLAUDE.md versioning section
 - Always check LSP sync status even if docs haven't changed
