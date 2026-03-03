@@ -1,4 +1,7 @@
 import { spawnSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * SuperDB version scheme:
@@ -266,8 +269,16 @@ export function compareVersionInfo(
  * Read version from embedded docs frontmatter
  */
 export function getDocsVersion(): string {
-  // This would read from the bundled docs
-  // For now, return the version we embedded
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const upgradeDoc = join(__dirname, '../../docs/zq-to-super-upgrades.md');
+    const content = readFileSync(upgradeDoc, 'utf-8');
+    const match = content.match(/superdb_version:\s*"([^"]+)"/);
+    if (match) return match[1];
+  } catch {
+    // fall through to hardcoded fallback
+  }
   return '0.2.0';
 }
 

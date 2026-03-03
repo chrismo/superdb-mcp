@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { parseYMMDDVersion, compareVersions, isVersionAtLeast, getDocsVersion, getVersionScheme } from '../lib/version.js';
 
 describe('parseYMMDDVersion', () => {
@@ -116,5 +119,23 @@ describe('getDocsVersion', () => {
     const version = getDocsVersion();
     expect(typeof version).toBe('string');
     expect(version.length).toBeGreaterThan(0);
+  });
+
+  it('matches the frontmatter in zq-to-super-upgrades.md', () => {
+    const upgradeDoc = join(dirname(fileURLToPath(import.meta.url)), '../../docs/zq-to-super-upgrades.md');
+    const content = readFileSync(upgradeDoc, 'utf-8');
+    const match = content.match(/superdb_version:\s*"([^"]+)"/);
+    expect(match).not.toBeNull();
+    expect(getDocsVersion()).toBe(match![1]);
+  });
+
+  it('matches the version in tool descriptions in index.ts', () => {
+    const indexTs = join(dirname(fileURLToPath(import.meta.url)), '../index.ts');
+    const content = readFileSync(indexTs, 'utf-8');
+    const version = getDocsVersion();
+    const matches = content.matchAll(/content targets (?:SuperDB )?v([0-9.]+)/g);
+    for (const m of matches) {
+      expect(m[1]).toBe(version);
+    }
   });
 });
