@@ -1,7 +1,7 @@
 ---
 name: moar-subqueries
 description: "Additional subquery patterns including fork and full sub-selects."
-superdb_version: "0.1.0"
+superdb_version: "0.2.0"
 last_updated: "2026-02-15"
 web: "https://chrismo.github.io/superkit/_build/tutorials/moar_subqueries/"
 ---

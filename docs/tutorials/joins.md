@@ -1,7 +1,7 @@
 ---
 name: joins
 description: "Examples of outer joins, anti joins, and full outer joins in SuperDB."
-superdb_version: "0.1.0"
+superdb_version: "0.2.0"
 last_updated: "2026-02-15"
 web: "https://chrismo.github.io/superkit/_build/tutorials/joins/"
 ---
@@ -72,5 +72,5 @@ super -s -c "select * from za.sup as za
 super --version
 ```
 ```mdtest-output
-Version: v0.1.0
+Version: v0.2.0
 ```

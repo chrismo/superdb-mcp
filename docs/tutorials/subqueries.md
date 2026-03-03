@@ -1,7 +1,7 @@
 ---
 name: subqueries
 description: "Examples of correlated subqueries and derived table patterns in SuperDB."
-superdb_version: "0.1.0"
+superdb_version: "0.2.0"
 last_updated: "2026-02-15"
 web: "https://chrismo.github.io/superkit/_build/tutorials/subqueries/"
 ---
@@ -85,7 +85,7 @@ super -s -c '
                 | values {date,foo})
     on {left.date,left.foo}={right.date,right.foo}
   | values left
-  | sort id' data.json
+  | sort id'
 ```
 ```mdtest-output
 {id:1,date:"2025-02-27",foo:3}
@@ -226,5 +226,5 @@ super -s -c '
 super --version
 ```
 ```mdtest-output
-Version: v0.1.0
+Version: v0.2.0
 ```

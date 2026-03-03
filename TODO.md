@@ -31,19 +31,12 @@
   - Consider what makes sense for the guide format: mdtest, custom tags, or something else
   - Goal: correct syntax highlighting and (ideally) testable examples
 
-- [ ] Revisit chess-tiebreaks tutorial: expression-context `count(this)` may be removed
-  - Tutorial uses `count(this)` in expression context for a running count to pair rows into games
-  - Expression-context aggregates may no longer work in current SuperDB
-  - The code has mdtest annotations but mdtest is never run (no CI step, not installed)
-  - Check if there's a replacement pattern (e.g., window functions, sequence operators)
-
 - [ ] Add mdtest CI to validate tutorial code blocks
-  - Tutorials have mdtest-command/mdtest-output/mdtest-input annotations but mdtest is never run
-  - Add a GHA workflow that installs SuperDB + mdtest and runs against `docs/tutorials/*.md`
-  - Need to figure out mdtest installation (it's a Go tool in brimdata/super)
-  - Will catch stale examples like the chess-tiebreaks expression-context issue
+  - Tutorials use mdtest annotations and can be tested via `./test-doc.sh`
+  - Requires local brimdata/super checkout with `kit_test.go` in `super/mdtest/`
+  - Add a GHA workflow that clones brimdata/super, installs Go, and runs mdtest
 
 - [ ] General docs overhaul
-  - Review all content for accuracy against current SuperDB v0.1.0
+  - Review all content for accuracy against current SuperDB version
   - Tighten prose, remove redundancy
   - Ensure consistent formatting across guides and tutorials

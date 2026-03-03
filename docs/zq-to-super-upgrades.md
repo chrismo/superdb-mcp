@@ -1,14 +1,14 @@
 ---
 name: zq-to-super-upgrades
 description: "Migration guide from zq to SuperDB. Covers all breaking changes and syntax updates."
-superdb_version: "0.1.0"
+superdb_version: "0.2.0"
 last_updated: "2026-01-31"
 web: "https://chrismo.github.io/superkit/_build/upgrade-guide/"
 ---
 
 # Upgrading zq to super
 
-SuperDB Version 0.1.0
+SuperDB Version 0.2.0
 
 This document is designed for AI assistants performing automated upgrades of zq
 scripts to SuperDB. It covers all breaking changes between zq and the current
