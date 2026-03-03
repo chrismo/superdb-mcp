@@ -2,12 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.3.0] - 2026-03-02 (targets SuperDB v0.2.0)
 
 ### Added
 - Escape recipes (`docs/recipes/escape.spq`): `sk_csv_field`, `sk_csv_row`, `sk_shell_quote`, `sk_tsv_field` for safe output formatting
 - Shell recipe type: recipes can now have `type:"shell"` with a `snippet` field for documenting CLI/subprocess patterns
 - 4 shell recipes for safe text ingestion via `-i line`: `safe_text_to_record`, `safe_text_to_string`, `safe_multiline_to_record`, `safe_append_to_sup_file`
+- `test-doc.sh` for running mdtest against tutorials via local brimdata/super checkout
+
+### Fixed
+- `sk_urldecode` recipe was calling `decode_seg` instead of `sk_decode_seg`
+- Chess-tiebreaks tutorial: replaced removed expression-context `count(this)` with the `count` operator
+- Subqueries tutorial: removed piped `from` with file path (disallowed in v0.2.0)
+- Fixed `SITE_BASE` URL missing `/_build` path segment
+
+### Changed
+- Updated all docs to target SuperDB v0.2.0
+- This repo is now the authoritative source for all docs (previously superkit)
+- Doc frontmatter `source` field replaced with `web` field linking to published GitHub Pages
+- Updated `/sync` command for new ownership model and standard semver
 
 ## [1.2.0] - 2026-02-20 (targets SuperDB v0.1.0)
 
