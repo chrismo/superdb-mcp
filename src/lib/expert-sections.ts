@@ -23,7 +23,7 @@ export interface ParsedExpertDoc {
  * Keys are the exact ## heading text (without the ## prefix).
  */
 export const SECTION_SLUGS: Record<string, string> = {
-  'CRITICAL WARNING ABOUT ZED/ZQ LANGUAGE': 'warning',
+  'Note on Zed/zq Compatibility': 'warning',
   'Core Knowledge': 'core',
   'Language Syntax Reference': 'syntax',
   'PostgreSQL Compatibility & Traditional SQL': 'sql',
@@ -33,7 +33,7 @@ export const SECTION_SLUGS: Record<string, string> = {
   'Format Conversions': 'formats',
   'Key Differences from SQL': 'differences',
   'Pragmas': 'pragmas',
-  'SuperDB Quoting Rules (Critical for Bash Integration)': 'quoting',
+  'SuperDB Quoting Rules (Bash Integration)': 'quoting',
   'SuperDB Array Filtering (Critical Pattern)': 'arrays',
   'Aggregate Functions': 'aggregates',
 };

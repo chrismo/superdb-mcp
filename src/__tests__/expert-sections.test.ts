@@ -17,7 +17,7 @@ name: test
 
 Intro paragraph.
 
-## CRITICAL WARNING ABOUT ZED/ZQ LANGUAGE
+## Note on Zed/zq Compatibility
 
 Warning content here.
 
@@ -45,7 +45,7 @@ describe('parseExpertDoc', () => {
   it('splits sections on ## headings', () => {
     const doc = parseExpertDoc(SYNTHETIC_MD);
     expect(doc.sections).toHaveLength(3);
-    expect(doc.sections[0].title).toBe('CRITICAL WARNING ABOUT ZED/ZQ LANGUAGE');
+    expect(doc.sections[0].title).toBe('Note on Zed/zq Compatibility');
     expect(doc.sections[1].title).toBe('Core Knowledge');
     expect(doc.sections[2].title).toBe('Language Syntax Reference');
   });
@@ -65,7 +65,7 @@ describe('parseExpertDoc', () => {
 
   it('includes ## heading in section content', () => {
     const doc = parseExpertDoc(SYNTHETIC_MD);
-    expect(doc.sections[0].content).toMatch(/^## CRITICAL WARNING/);
+    expect(doc.sections[0].content).toMatch(/^## Note on Zed\/zq Compatibility/);
     expect(doc.sections[0].content).toContain('Warning content here.');
   });
 
@@ -149,7 +149,7 @@ describe('superHelp expert integration', () => {
     const result = superHelp('expert');
     expect(result.success).toBe(true);
     expect(result.content).toContain('SuperDB');
-    expect(result.content).toContain('CRITICAL WARNING');
+    expect(result.content).toContain('Note on Zed/zq Compatibility');
     expect(result.content).toContain('Core Knowledge');
     expect(result.content).toContain('Available Sections');
     expect(result.content).toContain('`expert:sql`');

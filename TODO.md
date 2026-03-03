@@ -14,7 +14,7 @@
 
 ## Docs
 
-- [ ] Rewrite docs for a general audience (not agent-specific)
+- [x] Rewrite docs for a general audience (not agent-specific)
   - Expert guide opens with "You are a SuperDB expert" and agent-directed framing
   - Upgrade guide says "designed for AI assistants performing automated upgrades"
   - Language should be useful to humans and bots alike
