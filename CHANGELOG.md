@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-03-02 (targets SuperDB v0.2.0)
+
+### Changed
+- Rewrote expert guide and upgrade guide for general audience: removed agent-directed framing, toned down emphatic warnings to standard reference-doc style
+
 ## [1.3.1] - 2026-03-02 (targets SuperDB v0.2.0)
 
 ### Fixed
