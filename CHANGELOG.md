@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2026-03-02 (targets SuperDB v0.2.0)
+
+### Changed
+- Chess tiebreaks tutorial: added intro paragraph about plain text processing
+- Joins tutorial: dropped stale "In 0.1.0" version reference
+- Subqueries tutorial: added performance footnote about SQL subquery file re-reads
+
+### Removed
+- Deleted `moar_subqueries` tutorial (rough notes, nothing actionable)
+- Deleted `super_db_update` tutorial (unfinished draft)
+
 ## [1.3.2] - 2026-03-02 (targets SuperDB v0.2.0)
 
 ### Changed
