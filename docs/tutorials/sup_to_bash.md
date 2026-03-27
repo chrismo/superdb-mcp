@@ -1,7 +1,7 @@
 ---
 name: sup-to-bash
 description: "Optimizing SuperDB output into Bash variables efficiently."
-superdb_version: "0.2.0"
+superdb_version: "0.3.0"
 last_updated: "2026-02-15"
 web: "https://chrismo.github.io/superkit/_build/tutorials/sup_to_bash/"
 ---
@@ -138,7 +138,7 @@ isn't helpful here.
 IFS=$'\t' read -r a b c <<<"$(
   echo '{"a":"x","b":"","c":"z"}' |
     super -f line -c "
-      values [f'\"{this.a}\"', f'\"{this.b}\"', f'\"{this.c}\"']
+      values [f'\"\{this.a}\"', f'\"\{this.b}\"', f'\"\{this.c}\"']
       | join(this, '\t')
     " -
 )"
