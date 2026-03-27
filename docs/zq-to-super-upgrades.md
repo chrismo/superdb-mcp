@@ -1,14 +1,14 @@
 ---
 name: zq-to-super-upgrades
 description: "Migration guide from zq to SuperDB. Covers all breaking changes and syntax updates."
-superdb_version: "0.2.0"
-last_updated: "2026-01-31"
+superdb_version: "0.3.0"
+last_updated: "2026-03-27"
 web: "https://chrismo.github.io/superkit/_build/upgrade-guide/"
 ---
 
 # Upgrading zq to super
 
-SuperDB Version 0.2.0
+SuperDB Version 0.3.0
 
 This guide covers all breaking changes between zq and the current SuperDB
 release.
@@ -46,6 +46,9 @@ This table covers ALL breaking changes. Complex items reference detailed section
 | String concat    | `"a" + "b"`                 | `f'{a}{b}'`, `a \|\| b`, or `concat`     |
 | count type       | returns `uint64`            | returns `int64`                          |
 | Dynamic from     | `from pool`                 | `from f'{pool}'` (see section)           |
+| BSUP format      | BSUP v1                     | BSUP v2 (v1 no longer readable)          |
+| collect/union    | preserves all errors        | drops `error("quiet")` values            |
+| concat/f-strings | errors propagate            | `null` values ignored                    |
 
 ## CLI Changes
 
@@ -436,6 +439,41 @@ super -s -c "values 1,2,3 | aggregate cnt:=count() | typeof(cnt)"
 super -s -c "values 1,2,3 | aggregate cnt:=count() | typeof(cnt)"
 <int64>
 ```
+
+## Changes in v0.3.0
+
+### BSUP v2 format (breaking)
+
+As of v0.3.0, the BSUP binary format has been advanced to v2. `super` will no
+longer read BSUP v1 format as input. If you have valuable data stored in BSUP v1
+files, convert them using a v0.2.0 binary before upgrading:
+
+```bash
+# Convert v1 BSUP to JSON (using old binary), then back to v2 BSUP (using new binary)
+super-0.2.0 -j data.bsup > data.json
+super -f bsup data.json > data-v2.bsup
+```
+
+### collect and union drop quiet errors
+
+In `collect` and `union` aggregate functions, `error("quiet")` values are now
+dropped. `error("missing")` values are still preserved.
+
+### null values ignored in concat and f-strings
+
+The `concat` function and f-string interpolation now silently ignore `null`
+values instead of propagating them.
+
+### New features in v0.3.0
+
+- **`debug` operator** — new operator for debugging pipelines
+- **`infer` operator** — new operator for type inference
+- **`defuse` function** — new function for error handling
+- **`unblend` function** — new function for type separation
+- **`db vacate` command** — new command to vacate database pools
+- **Optional fields in record expressions** — record fields can now be marked optional
+- **Fusion types** — new type system feature
+- **Named types in `upcast` function**
 
 ## Formatting Conventions
 
