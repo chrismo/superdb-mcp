@@ -1,7 +1,7 @@
 ---
 name: bash-to-sup
 description: "Getting raw text safely from Bash into SuperDB without manual escaping."
-superdb_version: "0.2.0"
+superdb_version: "0.3.0"
 last_updated: "2026-02-17"
 web: "https://chrismo.github.io/superkit/_build/tutorials/bash_to_sup/"
 ---
