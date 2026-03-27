@@ -1,7 +1,7 @@
 ---
 name: unnest
 description: "Guide to the unnest operator including nested unnest...into patterns."
-superdb_version: "0.2.0"
+superdb_version: "0.3.0"
 last_updated: "2026-02-15"
 web: "https://chrismo.github.io/superkit/_build/tutorials/unnest/"
 ---
