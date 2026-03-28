@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-03-28 (targets SuperDB v0.2.0)
+
+### Added
+- ASDF-based multi-version support: all binary-executing tools now accept an optional `version` parameter to target a specific SuperDB version via ASDF (e.g., `"0.2.0"`, `"0.51231"`) or a direct binary path
+- New `src/lib/asdf.ts` module for ASDF version resolution with path caching
+
+### Fixed
+- `super_test_compat` no longer mutates `process.env.SUPER_PATH` (race condition fix); passes binary path directly to `runSuper`
+
 ## [1.3.3] - 2026-03-02 (targets SuperDB v0.2.0)
 
 ### Changed

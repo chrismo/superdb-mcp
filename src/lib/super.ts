@@ -16,9 +16,9 @@ export function getSuperPath(): string {
 /**
  * Execute the super binary with given arguments
  */
-export async function runSuper(args: string[], stdin?: string): Promise<SuperResult> {
+export async function runSuper(args: string[], stdin?: string, superPath?: string): Promise<SuperResult> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(getSuperPath(), args);
+    const proc = spawn(superPath || getSuperPath(), args);
     let stdout = '';
     let stderr = '';
 
@@ -48,13 +48,13 @@ export async function runSuper(args: string[], stdin?: string): Promise<SuperRes
 /**
  * Execute super db commands
  */
-export async function runSuperDb(subcommand: string, args: string[], lake?: string): Promise<SuperResult> {
+export async function runSuperDb(subcommand: string, args: string[], lake?: string, superPath?: string): Promise<SuperResult> {
   const fullArgs = ['db', subcommand];
   if (lake) {
     fullArgs.push('-lake', lake);
   }
   fullArgs.push(...args);
-  return runSuper(fullArgs);
+  return runSuper(fullArgs, undefined, superPath);
 }
 
 /**

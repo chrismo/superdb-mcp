@@ -27,7 +27,7 @@ const docsDir = join(__dirname, '../docs');
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.3.3',
+    version: '1.4.0',
   },
   {
     capabilities: {
@@ -99,6 +99,11 @@ function buildResources() {
 
 const resources = buildResources();
 
+const versionProperty = {
+  type: 'string',
+  description: 'SuperDB version (e.g., "0.2.0") resolved via ASDF, or a direct path to a super binary. Omit for default.',
+};
+
 // Tool definitions — grouped by category, ordered by likely usage frequency
 const tools = [
   // --- Query & Data ---
@@ -130,6 +135,7 @@ const tools = [
           type: 'string',
           description: 'Force input format if auto-detection fails',
         },
+        version: versionProperty,
       },
       required: ['query'],
     },
@@ -144,6 +150,7 @@ const tools = [
           type: 'string',
           description: 'Path to the data file',
         },
+        version: versionProperty,
       },
       required: ['file'],
     },
@@ -172,6 +179,7 @@ const tools = [
           enum: ['json', 'sup', 'csv', 'table'],
           description: 'Output format (default: json)',
         },
+        version: versionProperty,
       },
       required: ['query'],
     },
@@ -186,6 +194,7 @@ const tools = [
           type: 'string',
           description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
         },
+        version: versionProperty,
       },
     },
   },
@@ -207,6 +216,7 @@ const tools = [
           type: 'string',
           description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
         },
+        version: versionProperty,
       },
       required: ['name'],
     },
@@ -234,6 +244,7 @@ const tools = [
           type: 'string',
           description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
         },
+        version: versionProperty,
       },
       required: ['pool'],
     },
@@ -290,6 +301,7 @@ const tools = [
           type: 'string',
           description: 'Optional path to another super binary to compare versions',
         },
+        version: versionProperty,
       },
     },
   },
@@ -435,6 +447,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: args?.data as string | undefined,
           format: args?.format as 'json' | 'sup' | 'csv' | 'table' | undefined,
           inputFormat: args?.inputFormat as string | undefined,
+          version: args?.version as string | undefined,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -442,14 +455,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'super_schema': {
-        const result = await superSchema(args?.file as string);
+        const result = await superSchema(args?.file as string, args?.version as string | undefined);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
       }
 
       case 'super_db_list': {
-        const result = await superDbList(args?.lake as string | undefined);
+        const result = await superDbList(args?.lake as string | undefined, args?.version as string | undefined);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
@@ -461,6 +474,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           pool: args?.pool as string | undefined,
           lake: args?.lake as string | undefined,
           format: args?.format as 'json' | 'sup' | 'csv' | 'table' | undefined,
+          version: args?.version as string | undefined,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -473,6 +487,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           files: args?.files as string[] | undefined,
           data: args?.data as string | undefined,
           lake: args?.lake as string | undefined,
+          version: args?.version as string | undefined,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -484,6 +499,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           name: args?.name as string,
           orderBy: args?.orderBy as string | undefined,
           lake: args?.lake as string | undefined,
+          version: args?.version as string | undefined,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -491,7 +507,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'super_info': {
-        const result = superInfo(args?.compare_to as string | undefined);
+        const result = superInfo(args?.compare_to as string | undefined, args?.version as string | undefined);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };

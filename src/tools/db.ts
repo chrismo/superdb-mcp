@@ -1,4 +1,5 @@
 import { runSuperDb, parseNDJSON } from '../lib/super.js';
+import { resolveSuperPath } from '../lib/asdf.js';
 
 export interface DbListResult {
   success: boolean;
@@ -11,6 +12,7 @@ export interface DbQueryParams {
   pool?: string;
   lake?: string;
   format?: 'json' | 'sup' | 'csv' | 'table';
+  version?: string;
 }
 
 export interface DbQueryResult {
@@ -26,6 +28,7 @@ export interface DbLoadParams {
   files?: string[];
   data?: string;
   lake?: string;
+  version?: string;
 }
 
 export interface DbLoadResult {
@@ -38,6 +41,7 @@ export interface DbCreatePoolParams {
   name: string;
   orderBy?: string;
   lake?: string;
+  version?: string;
 }
 
 export interface DbCreatePoolResult {
@@ -49,8 +53,9 @@ export interface DbCreatePoolResult {
 /**
  * List all pools in a database
  */
-export async function superDbList(lake?: string): Promise<DbListResult> {
-  const result = await runSuperDb('ls', [], lake);
+export async function superDbList(lake?: string, version?: string): Promise<DbListResult> {
+  const superPath = resolveSuperPath(version);
+  const result = await runSuperDb('ls', [], lake, superPath);
 
   if (result.exitCode !== 0) {
     return {
@@ -73,7 +78,8 @@ export async function superDbList(lake?: string): Promise<DbListResult> {
  * Query data from a database pool
  */
 export async function superDbQuery(params: DbQueryParams): Promise<DbQueryResult> {
-  const { query, pool, lake, format = 'json' } = params;
+  const { query, pool, lake, format = 'json', version } = params;
+  const superPath = resolveSuperPath(version);
 
   const args: string[] = [];
 
@@ -96,7 +102,7 @@ export async function superDbQuery(params: DbQueryParams): Promise<DbQueryResult
 
   args.push('-c', fullQuery);
 
-  const result = await runSuperDb('query', args, lake);
+  const result = await runSuperDb('query', args, lake, superPath);
 
   if (result.exitCode !== 0) {
     return {
@@ -140,7 +146,8 @@ export async function superDbQuery(params: DbQueryParams): Promise<DbQueryResult
  * Load data into a pool
  */
 export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
-  const { pool, files, data, lake } = params;
+  const { pool, files, data, lake, version } = params;
+  const superPath = resolveSuperPath(version);
 
   const args: string[] = [pool];
 
@@ -160,7 +167,7 @@ export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
     }
     fullArgs.push(pool, '-');
 
-    const result = await runSuper(fullArgs, data);
+    const result = await runSuper(fullArgs, data, superPath);
 
     if (result.exitCode !== 0) {
       return {
@@ -177,7 +184,7 @@ export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
     };
   }
 
-  const result = await runSuperDb('load', args, lake);
+  const result = await runSuperDb('load', args, lake, superPath);
 
   if (result.exitCode !== 0) {
     return {
@@ -198,7 +205,8 @@ export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
  * Create a new pool
  */
 export async function superDbCreatePool(params: DbCreatePoolParams): Promise<DbCreatePoolResult> {
-  const { name, orderBy, lake } = params;
+  const { name, orderBy, lake, version } = params;
+  const superPath = resolveSuperPath(version);
 
   const args: string[] = [];
 
@@ -208,7 +216,7 @@ export async function superDbCreatePool(params: DbCreatePoolParams): Promise<DbC
 
   args.push(name);
 
-  const result = await runSuperDb('create', args, lake);
+  const result = await runSuperDb('create', args, lake, superPath);
 
   if (result.exitCode !== 0) {
     return {

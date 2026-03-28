@@ -1,5 +1,6 @@
 import { basename } from 'path';
 import { runSuper, parseNDJSON } from '../lib/super.js';
+import { resolveSuperPath } from '../lib/asdf.js';
 
 export interface QueryParams {
   query: string;
@@ -7,6 +8,7 @@ export interface QueryParams {
   data?: string;
   format?: 'json' | 'sup' | 'csv' | 'table';
   inputFormat?: string;
+  version?: string;
 }
 
 export interface QueryResult {
@@ -35,7 +37,8 @@ export interface SchemaResult {
  * Execute a SuperSQL query
  */
 export async function superQuery(params: QueryParams): Promise<QueryResult> {
-  const { query, files, data, format = 'json', inputFormat } = params;
+  const { query, files, data, format = 'json', inputFormat, version } = params;
+  const superPath = resolveSuperPath(version);
 
   // Build arguments
   const args: string[] = [];
@@ -67,7 +70,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
   }
 
   // Execute
-  const result = await runSuper(args, data);
+  const result = await runSuper(args, data, superPath);
 
   if (result.exitCode !== 0) {
     const error = result.stderr.trim() || 'Query failed with no error message';
@@ -154,10 +157,11 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
 /**
  * Inspect schema/types of a file by finding unique shapes
  */
-export async function superSchema(file: string): Promise<SchemaResult> {
+export async function superSchema(file: string, version?: string): Promise<SchemaResult> {
+  const superPath = resolveSuperPath(version);
   // Use aggregation to find unique shapes with counts and examples
   const query = 'count(), any(this) by typeof(this) | sort -r count';
-  const result = await runSuper(['-j', '-c', query, file]);
+  const result = await runSuper(['-j', '-c', query, file], undefined, superPath);
 
   if (result.exitCode !== 0) {
     return {

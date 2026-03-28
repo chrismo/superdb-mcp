@@ -11,6 +11,7 @@ import {
   VersionComparison,
 } from '../lib/version.js';
 import { runSuper } from '../lib/super.js';
+import { resolveSuperPath } from '../lib/asdf.js';
 import { getExpertDoc, buildOverview } from '../lib/expert-sections.js';
 
 // Get paths
@@ -142,9 +143,10 @@ export function superLspStatus(): LspStatusResult {
 /**
  * Get SuperDB version and environment info
  */
-export function superInfo(compareTo?: string): InfoResult {
+export function superInfo(compareTo?: string, version?: string): InfoResult {
   try {
-    const runtime = detectVersion();
+    const superPath = resolveSuperPath(version);
+    const runtime = detectVersion(superPath);
     const compatibility = checkDocsCompatibility();
 
     // Check for LSP
@@ -468,18 +470,7 @@ export async function superTestCompat(
     const versionInfo = detectVersion(versionPath);
 
     try {
-      // Temporarily override SUPER_PATH
-      const originalPath = process.env.SUPER_PATH;
-      process.env.SUPER_PATH = versionPath;
-
-      const result = await runSuper(['-c', query]);
-
-      // Restore original
-      if (originalPath) {
-        process.env.SUPER_PATH = originalPath;
-      } else {
-        delete process.env.SUPER_PATH;
-      }
+      const result = await runSuper(['-c', query], undefined, versionPath);
 
       if (result.exitCode === 0) {
         hasSuccess = true;
