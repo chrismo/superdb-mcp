@@ -449,9 +449,9 @@ longer read BSUP v1 format as input. If you have valuable data stored in BSUP v1
 files, convert them using a v0.2.0 binary before upgrading:
 
 ```bash
-# Convert v1 BSUP to JSON (using old binary), then back to v2 BSUP (using new binary)
-super-0.2.0 -j data.bsup > data.json
-super -f bsup data.json > data-v2.bsup
+# Convert v1 BSUP to SUP (using old binary), then back to v2 BSUP (using new binary)
+super-0.2.0 -s data.bsup > data.sup
+super -f bsup data.sup > data-v2.bsup
 ```
 
 ### collect and union drop quiet errors
