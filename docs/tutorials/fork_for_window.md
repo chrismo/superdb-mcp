@@ -280,7 +280,7 @@ pass and supporting sophisticated ranking (e.g., ordering within groups by
 launch time, instance type preference, etc.).
 
 | Approach         | Dynamic groups? | Time complexity  | Notes                                      |
-|------------------|-----------------|------------------|--------------------------------------------||
+|------------------|-----------------|------------------|--------------------------------------------|
 | Fork             | No              | O(n) per branch  | Groups must be hardcoded                   |
 | Self-join        | Yes             | O(n^2) per group | Every record joined against its group peers |
 | Window functions | Yes             | O(n log n)       | Sort + single pass (not yet available)     |

@@ -138,7 +138,7 @@ isn't helpful here.
 IFS=$'\t' read -r a b c <<<"$(
   echo '{"a":"x","b":"","c":"z"}' |
     super -f line -c "
-      values [f'\"\{this.a}\"', f'\"\{this.b}\"', f'\"\{this.c}\"']
+      values [f'\"{this.a}\"', f'\"{this.b}\"', f'\"{this.c}\"']
       | join(this, '\t')
     " -
 )"
