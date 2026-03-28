@@ -30,7 +30,7 @@ super -i line -s -c "
   -- parse the pgn file
   --
   where this != ''
-  | grok('.*White \"\%{WORD:last_name_white}|.*Black \"\%{WORD:last_name_black}', this)
+  | grok('.*White \"%{WORD:last_name_white}|.*Black \"%{WORD:last_name_black}', this)
   | where not is_error(this)
 
   --
@@ -84,7 +84,7 @@ out empty lines with `where this != ''`.
 
 ### Grok Parsing
 
-The grok pattern `'.*White \"\%{WORD:last_name_white}|.*Black \"\%{WORD:last_name_black}'`
+The grok pattern `'.*White \"%{WORD:last_name_white}|.*Black \"%{WORD:last_name_black}'`
 uses alternation (`|`) to match either a White or Black player line. The
 `%{WORD:...}` capture extracts just the last name (the first word after the
 opening quote).
