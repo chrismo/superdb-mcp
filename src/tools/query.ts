@@ -16,6 +16,7 @@ export interface QueryResult {
   data: unknown[] | null;
   rowCount: number;
   raw?: string;
+  debug?: string;
   error: string | null;
   suggestions?: string[];
 }
@@ -123,6 +124,9 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
     };
   }
 
+  // Capture debug operator output from stderr (emitted in SUP format)
+  const debugOutput = result.stderr.trim() || undefined;
+
   // Parse output based on format
   if (format === 'json') {
     try {
@@ -131,6 +135,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
         success: true,
         data: parsed,
         rowCount: parsed.length,
+        ...(debugOutput && { debug: debugOutput }),
         error: null,
       };
     } catch (e) {
@@ -139,6 +144,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
         data: null,
         rowCount: 0,
         raw: result.stdout,
+        ...(debugOutput && { debug: debugOutput }),
         error: null,
       };
     }
@@ -149,6 +155,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
       data: null,
       rowCount: 0,
       raw: result.stdout,
+      ...(debugOutput && { debug: debugOutput }),
       error: null,
     };
   }

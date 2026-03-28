@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { superQuery } from '../tools/query.js';
 import { runSuper } from '../lib/super.js';
+import { resolveSuperPath } from '../lib/asdf.js';
 
 // Check if super binary is available
 let superAvailable = false;
@@ -13,6 +14,17 @@ beforeAll(async () => {
     superAvailable = false;
   }
 });
+
+// Check if 0.3.0 is installed (needed for debug operator tests)
+function isVersionInstalled(version: string): boolean {
+  try {
+    resolveSuperPath(version);
+    return true;
+  } catch {
+    return false;
+  }
+}
+const v030Installed = isVersionInstalled('0.3.0');
 
 describe('superQuery migration hints', () => {
   it.skipIf(() => !superAvailable)('suggests "values" when query uses "yield"', async () => {
@@ -58,5 +70,27 @@ describe('superQuery migration hints', () => {
     expect(result.success).toBe(false);
     expect(result.suggestions).toBeDefined();
     expect(result.suggestions!.some(s => s.includes(absPath) && s.includes('FROM'))).toBe(true);
+  });
+});
+
+describe('superQuery debug output', () => {
+  it.skipIf(!v030Installed)('captures debug operator stderr in result', async () => {
+    const result = await superQuery({
+      query: 'values "hello, world" | debug {debug:this} | where false',
+      version: '0.3.0',
+    });
+    expect(result.success).toBe(true);
+    expect(result.debug).toBeDefined();
+    expect(result.debug).toContain('debug');
+    expect(result.debug).toContain('hello, world');
+  });
+
+  it.skipIf(!v030Installed)('debug field is absent when no debug output', async () => {
+    const result = await superQuery({
+      query: 'values 1,2,3',
+      version: '0.3.0',
+    });
+    expect(result.success).toBe(true);
+    expect(result.debug).toBeUndefined();
   });
 });
