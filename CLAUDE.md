@@ -22,6 +22,8 @@ npm run test:watch   # Watch mode
 
 Tests live in `src/__tests__/`. Tests that require the `super` binary use `it.skipIf()` to skip gracefully when the binary is unavailable.
 
+**TDD is required.** Write a failing test before implementing a fix or feature. The cycle is: red test, green implementation, then refactor if needed.
+
 ## Architecture
 
 This is an MCP (Model Context Protocol) server that wraps the SuperDB `super` binary, allowing AI assistants to execute SuperSQL queries without shell escaping issues.

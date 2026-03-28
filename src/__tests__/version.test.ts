@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { parseYMMDDVersion, compareVersions, isVersionAtLeast, getDocsVersion, getVersionScheme } from '../lib/version.js';
+import { parseYMMDDVersion, compareVersions, isVersionAtLeast, getDocsVersion, getVersionScheme, checkDocsCompatibility } from '../lib/version.js';
 
 describe('parseYMMDDVersion', () => {
   it('parses a valid YMMDD version string', () => {
@@ -111,6 +111,25 @@ describe('isVersionAtLeast', () => {
 
   it('returns false when current is older than required', () => {
     expect(isVersionAtLeast('0.51231', '0.50930')).toBe(false);
+  });
+});
+
+describe('checkDocsCompatibility', () => {
+  it('uses the provided superPath for version detection', () => {
+    const result = checkDocsCompatibility('/nonexistent/custom/super');
+
+    // When a superPath is provided, detectVersion should use it
+    // The path shows up in the runtime result even if the binary doesn't exist
+    expect(result.runtime.path).toBe('/nonexistent/custom/super');
+    expect(result.runtime.source).toBe('override');
+  });
+
+  it('uses default path when no superPath given', () => {
+    const result = checkDocsCompatibility();
+
+    // Without a superPath, should use default (SUPER_PATH env or 'super')
+    const expectedPath = process.env.SUPER_PATH || 'super';
+    expect(result.runtime.path).toBe(expectedPath);
   });
 });
 

@@ -285,13 +285,13 @@ export function getDocsVersion(): string {
 /**
  * Check compatibility between runtime and docs
  */
-export function checkDocsCompatibility(): {
+export function checkDocsCompatibility(superPath?: string): {
   runtime: VersionInfo;
   docs: string;
   compatible: boolean;
   warnings: string[];
 } {
-  const runtime = detectVersion();
+  const runtime = detectVersion(superPath);
   const docs = getDocsVersion();
 
   const warnings: string[] = [];

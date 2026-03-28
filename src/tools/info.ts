@@ -147,7 +147,7 @@ export function superInfo(compareTo?: string, version?: string): InfoResult {
   try {
     const superPath = resolveSuperPath(version);
     const runtime = detectVersion(superPath);
-    const compatibility = checkDocsCompatibility();
+    const compatibility = checkDocsCompatibility(superPath);
 
     // Check for LSP
     const lspPath = process.env.SUPERDB_LSP_PATH || null;
