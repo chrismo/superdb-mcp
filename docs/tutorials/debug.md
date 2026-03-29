@@ -225,6 +225,196 @@ cat /tmp/scores.sup
 {name:"dave",score:67,pass:false}
 ```
 
+## Alternative: fork instead of collect/unnest
+
+The `collect`/`unnest` sandwich works, but it buffers the entire dataset into
+memory. The `fork` operator offers an alternative — each branch processes the
+data independently:
+
+```mdtest-command
+super -s -c "
+  values
+    {name:\"alice\",score:85},
+    {name:\"bob\",score:42},
+    {name:\"carol\",score:91},
+    {name:\"dave\",score:67}
+  | put pass:=score >= 70
+  | fork
+    (debug f'FAIL: {name} ({score})' filter (pass=false)
+     | where pass=false
+     | count()
+     | debug f'{this} student(s) failed'
+     | where false)
+    (sort name)
+" > /tmp/scores.sup
+```
+```mdtest-output
+"FAIL: bob (42)"
+"FAIL: dave (67)"
+"2 student(s) failed"
+```
+
+```mdtest-command
+cat /tmp/scores.sup
+```
+```mdtest-output
+{name:"alice",score:85,pass:true}
+{name:"bob",score:42,pass:false}
+{name:"carol",score:91,pass:true}
+{name:"dave",score:67,pass:false}
+```
+
+The first fork branch handles all the debug output: per-record failure alerts,
+then filters to just failures, counts them, and emits a summary via a second
+`debug`. The `where false` at the end drops everything from that branch's stdout.
+The second branch is just the clean main output.
+
+Note that the `filter` clause on `debug` only controls what goes to stderr — it
+doesn't filter the branch itself. That's why `where pass=false` is needed again
+before `count()`.
+
+### Streaming behavior
+
+The key advantage of `fork` is that the main branch can emit results
+immediately while the debug branch accumulates. With `collect`/`unnest`,
+nothing can emit until the entire dataset is buffered.
+
+You can see this with a large input — pipe a million numbers in, fork into a
+debug count and a main branch that filters to milestones:
+
+```mdtest-command
+seq 1 1000000 | super -s -c "
+  fork
+    (count() | debug f'{this} total records' | where false)
+    (where this % 100000 = 0 | head 5)
+" -
+```
+```mdtest-output
+100000
+200000
+300000
+400000
+500000
+"1000001 total records"
+```
+
+The milestones appear **before** the debug count — they streamed through as the
+data flowed. Compare with `collect`/`unnest`, where the count appears **first**
+because everything must be buffered before any output:
+
+```mdtest-command
+seq 1 1000000 | super -s -c "
+  collect(this)
+  | debug (unnest this | count() | values f'{this} total records')
+  | unnest this
+  | where this % 100000 = 0
+  | head 5
+" -
+```
+```mdtest-output
+"1000001 total records"
+100000
+200000
+300000
+400000
+500000
+```
+
+`fork` also uses O(1) memory for the counting branch (just an integer
+accumulator), while `collect` stores every record in an array (O(n)). The
+`collect`/`unnest` approach is more compact and keeps the aggregation in a
+single self-contained subquery, but `fork` scales better.
+
+## Mixing SQL and pipeline debug
+
+SQL and pipeline syntax can be mixed freely. Use SQL `SELECT` for the
+relational logic, then pipe into `debug` for instrumentation. This also
+shows `FROM (values ...)` — inline data in a SQL FROM clause:
+
+```mdtest-command
+super -s -c "
+  SELECT *, score >= 70 as pass
+  FROM (values
+    {name:\"alice\",score:85},
+    {name:\"bob\",score:42},
+    {name:\"carol\",score:91},
+    {name:\"dave\",score:67})
+  | fork
+    (debug f'FAIL: {name} ({score})' filter (pass=false)
+     | where pass=false
+     | count()
+     | debug f'{this} student(s) failed'
+     | where false)
+    (sort name)
+" > /tmp/scores.sup
+```
+```mdtest-output
+"FAIL: bob (42)"
+"FAIL: dave (67)"
+"2 student(s) failed"
+```
+
+```mdtest-command
+cat /tmp/scores.sup
+```
+```mdtest-output
+{name:"alice",score:85,pass:true}
+{name:"bob",score:42,pass:false}
+{name:"carol",score:91,pass:true}
+{name:"dave",score:67,pass:false}
+```
+
+The SQL handles the data shaping (`SELECT *, score >= 70 as pass`), then the
+pipeline takes over for the debug side-channel. This is a natural split — use
+each syntax for what it's best at.
+
+## Using fn and op with debug
+
+User-defined functions work in debug's `filter` clause, which is a clean way to
+name your predicates:
+
+```mdtest-command
+super -s -c "
+  fn is_fail(s): s < 70
+  values {name:\"alice\",score:85},{name:\"bob\",score:42}
+  | debug f'FAIL: {name} ({score})' filter (is_fail(score))
+  | where false
+" 2>&1
+```
+```mdtest-output
+"FAIL: bob (42)"
+```
+
+Debug also works inside `op` bodies, so you can package up a debug-instrumented
+pipeline for reuse:
+
+```mdtest-command
+super -s -c "
+  op grade_report: (
+    fork
+      (debug f'FAIL: {name} ({score})' filter (score < 70)
+       | where false)
+      (put pass:=score >= 70 | sort name)
+  )
+  values {name:\"alice\",score:85},{name:\"bob\",score:42},{name:\"carol\",score:91},{name:\"dave\",score:67}
+  | grade_report
+" > /tmp/scores.sup
+```
+```mdtest-output
+"FAIL: bob (42)"
+"FAIL: dave (67)"
+```
+
+```mdtest-command
+cat /tmp/scores.sup
+```
+```mdtest-output
+{name:"alice",score:85,pass:true}
+{name:"bob",score:42,pass:false}
+{name:"carol",score:91,pass:true}
+{name:"dave",score:67,pass:false}
+```
+
 ## Notes
 
 - Debug output is always in SUP format, even when the main output uses `-j`,
