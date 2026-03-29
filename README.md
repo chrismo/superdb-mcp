@@ -285,4 +285,11 @@ documentation lookup — see [installation instructions](#lsp-optional).
 
 ## License
 
-BSD 3-Clause License
+This MCP server is licensed under the
+[BSD-3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
+
+This project wraps [SuperDB](https://github.com/brimdata/super), which is
+licensed under the
+[SuperDB Source Available License](https://github.com/brimdata/super/blob/main/LICENSE.md).
+The MCP server does not distribute SuperDB source code or binaries; it invokes
+a locally installed `super` binary at runtime.
