@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync } from 'fs';
-import { join, dirname, basename } from 'path';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import {
@@ -12,12 +12,12 @@ import {
 } from '../lib/version.js';
 import { runSuper } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
-import { getExpertDoc, buildOverview } from '../lib/expert-sections.js';
+import { superHelp as _superHelp } from 'superkit';
+import type { HelpResult as SuperkitHelpResult } from 'superkit';
 
 // Get paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const docsDir = join(__dirname, '../../docs');
 const packageJsonPath = join(__dirname, '../../package.json');
 
 // Read MCP version from package.json
@@ -251,198 +251,15 @@ export function superCompare(currentPath?: string, compareToPath?: string): Comp
 }
 
 /**
- * Get help documentation
+ * Get help documentation, delegating to superkit with MCP version note.
  */
-/**
- * List available tutorial names from docs/tutorials/
- */
-function listTutorials(): string[] {
-  const tutorialsDir = join(docsDir, 'tutorials');
-  try {
-    return readdirSync(tutorialsDir)
-      .filter(f => f.endsWith('.md'))
-      .map(f => basename(f, '.md'))
-      .sort();
-  } catch {
-    return [];
-  }
-}
-
-const SITE_BASE = 'https://chrismo.github.io/superkit/_build';
-
-const webUrls: Record<string, string> = {
-  'expert': `${SITE_BASE}/expert-guide`,
-  'upgrade': `${SITE_BASE}/upgrade-guide`,
-  'upgrade-guide': `${SITE_BASE}/upgrade-guide`,
-  'migration': `${SITE_BASE}/upgrade-guide`,
-  'tutorials': `${SITE_BASE}/tutorials`,
-};
-
 export function superHelp(topic: string): HelpResult {
-  const topics: Record<string, string> = {
-    'upgrade': 'zq-to-super-upgrades.md',
-    'upgrade-guide': 'zq-to-super-upgrades.md',
-    'migration': 'zq-to-super-upgrades.md',
-  };
-
-  const normalized = topic.toLowerCase();
+  const result = _superHelp(topic);
   const versionNote = getVersionNote() ?? undefined;
-
-  // Handle expert doc topics: expert, expert:all, expert:<slug>
-  if (normalized === 'expert' || normalized.startsWith('expert:')) {
-    try {
-      const doc = getExpertDoc();
-      const webUrl = webUrls['expert'];
-      const suffix = normalized === 'expert' ? null : normalized.slice('expert:'.length);
-
-      // expert:all — full document
-      if (suffix === 'all') {
-        const filepath = join(docsDir, 'superdb-expert.md');
-        const content = readFileSync(filepath, 'utf-8');
-        return {
-          success: true,
-          topic,
-          content,
-          web_url: webUrl,
-          ...(versionNote && { version_note: versionNote }),
-          error: null,
-        };
-      }
-
-      // expert:<slug> — single section
-      if (suffix) {
-        const section = doc.sections.find(s => s.slug === suffix);
-        if (!section) {
-          const available = doc.sections.map(s => `expert:${s.slug}`).join(', ');
-          return {
-            success: false,
-            topic,
-            content: '',
-            error: `Unknown expert section: ${suffix}. Available sections: ${available}`,
-          };
-        }
-        return {
-          success: true,
-          topic,
-          content: section.content,
-          web_url: webUrl,
-          ...(versionNote && { version_note: versionNote }),
-          error: null,
-        };
-      }
-
-      // expert — overview with section index
-      const content = buildOverview(doc);
-      const sections = doc.sections.map(s => ({ slug: s.slug, title: s.title, lines: s.lines }));
-      return {
-        success: true,
-        topic,
-        content,
-        sections,
-        web_url: webUrl,
-        ...(versionNote && { version_note: versionNote }),
-        error: null,
-      };
-    } catch (e) {
-      return {
-        success: false,
-        topic,
-        content: '',
-        error: `Failed to read expert documentation: ${e instanceof Error ? e.message : String(e)}`,
-      };
-    }
-  }
-
-  // Handle "tutorials" topic — list available tutorials
-  if (normalized === 'tutorials') {
-    const tutorials = listTutorials();
-    const listing = tutorials.length > 0
-      ? tutorials.map(t => `- tutorial:${t}`).join('\n')
-      : 'No tutorials found.';
-    return {
-      success: true,
-      topic,
-      content: `# Available Tutorials\n\nUse \`super_help\` with topic \`"tutorial:<name>"\` to read a specific tutorial.\n\n${listing}`,
-      web_url: webUrls['tutorials'],
-      ...(versionNote && { version_note: versionNote }),
-      error: null,
-    };
-  }
-
-  // Handle "tutorial:<name>" topics
-  if (normalized.startsWith('tutorial:')) {
-    const tutorialName = normalized.slice('tutorial:'.length);
-    const tutorialsDir = join(docsDir, 'tutorials');
-    // Try exact match, then with underscores replaced by hyphens
-    const candidates = [
-      `${tutorialName}.md`,
-      `${tutorialName.replace(/-/g, '_')}.md`,
-      `${tutorialName.replace(/_/g, '-')}.md`,
-    ];
-
-    for (const candidate of candidates) {
-      try {
-        const filepath = join(tutorialsDir, candidate);
-        const content = readFileSync(filepath, 'utf-8');
-        const resolvedName = basename(candidate, '.md');
-        return {
-          success: true,
-          topic,
-          content,
-          web_url: `${SITE_BASE}/tutorials/${resolvedName}`,
-          ...(versionNote && { version_note: versionNote }),
-          error: null,
-        };
-      } catch {
-        // Try next candidate
-      }
-    }
-
-    const tutorials = listTutorials();
-    return {
-      success: false,
-      topic,
-      content: '',
-      error: `Unknown tutorial: ${tutorialName}. Available tutorials: ${tutorials.join(', ')}`,
-    };
-  }
-
-  const filename = topics[normalized];
-  if (!filename) {
-    const tutorials = listTutorials();
-    const allTopics = [
-      'expert',
-      ...Object.keys(topics),
-      'tutorials',
-      ...tutorials.map(t => `tutorial:${t}`),
-    ];
-    return {
-      success: false,
-      topic,
-      content: '',
-      error: `Unknown topic: ${topic}. Available topics: ${allTopics.join(', ')}`,
-    };
-  }
-
-  try {
-    const filepath = join(docsDir, filename);
-    const content = readFileSync(filepath, 'utf-8');
-    return {
-      success: true,
-      topic,
-      content,
-      ...(webUrls[normalized] && { web_url: webUrls[normalized] }),
-      ...(versionNote && { version_note: versionNote }),
-      error: null,
-    };
-  } catch (e) {
-    return {
-      success: false,
-      topic,
-      content: '',
-      error: `Failed to read documentation: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  }
+  return {
+    ...result,
+    ...(versionNote && { version_note: versionNote }),
+  };
 }
 
 /**

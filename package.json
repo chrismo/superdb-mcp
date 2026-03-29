@@ -9,8 +9,7 @@
   },
   "files": [
     "dist",
-    "!dist/__tests__",
-    "docs"
+    "!dist/__tests__"
   ],
   "scripts": {
     "build": "tsc",
@@ -34,7 +33,8 @@
   "author": "chrismo",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "superkit": "file:../superkit"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
