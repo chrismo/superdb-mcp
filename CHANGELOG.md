@@ -4,11 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [1.5.0] - 2026-03-28 (targets SuperDB v0.3.0)
 
+### Added
+- Debug operator stderr output captured in `QueryResult.debug` field — queries using the `debug` operator now surface their stderr output in results
+- New `debug` operator tutorial: basic usage, expressions, filter clause, collect/unnest subqueries, fork-based streaming, SQL hybrid, fn/op usage
+- `infer` section added to grok tutorial showing `grok | infer` for auto-detecting types from parsed string fields
+
+### Fixed
+- `superInfo` compatibility check now uses the version-overridden binary instead of always checking the default
+
 ### Changed
 - Updated all docs and tutorials to target SuperDB v0.3.0
 - Updated content version in tool descriptions from v0.2.0 to v0.3.0
 - Added v0.3.0 breaking changes to upgrade guide: BSUP v2 format, collect/union quiet error handling, null in concat/f-strings
-- Added v0.3.0 new features to expert guide: `debug` operator, `infer` operator, `defuse` function, `unblend` function, optional record fields, `db vacate` command
+- Added v0.3.0 new features to expert guide: `debug` operator, `infer` operator, `defuse` function, `unblend` function, optional record fields, fusion types, `db vacate` command
+- Clarified license distinction between MCP server (BSD-3-Clause) and SuperDB in README
 
 ## [1.4.0] - 2026-03-28 (targets SuperDB v0.2.0)
 
