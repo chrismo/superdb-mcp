@@ -177,7 +177,7 @@ stderr.
 ## Advanced: debug with a subquery
 
 Since `debug` operates per-value, it can't aggregate across the whole stream by
-itself. But you can use `collect` to gather all records, then use a `[...]`
+itself. But you can use `collect` to gather all records, then use a `(...)`
 lateral subquery inside debug to compute a summary.
 
 Building on the previous example, let's add a count of total failures to the
