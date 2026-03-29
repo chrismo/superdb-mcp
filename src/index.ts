@@ -9,8 +9,8 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync, readdirSync } from 'fs';
-import { join, dirname, basename } from 'path';
-import { fileURLToPath } from 'url';
+import { join, basename } from 'path';
+import { getDocsDir } from 'superkit';
 
 import { superQuery, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
@@ -19,10 +19,8 @@ import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
 import { superGrokPatterns } from './tools/grok.js';
 import { superRecipes } from './tools/recipes.js';
 
-// Get docs directory path
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const docsDir = join(__dirname, '../docs');
+// Get docs directory from superkit
+const docsDir = getDocsDir();
 
 const server = new Server(
   {

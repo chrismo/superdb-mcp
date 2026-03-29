@@ -140,8 +140,9 @@ describe('getDocsVersion', () => {
     expect(version.length).toBeGreaterThan(0);
   });
 
-  it('matches the frontmatter in zq-to-super-upgrades.md', () => {
-    const upgradeDoc = join(dirname(fileURLToPath(import.meta.url)), '../../docs/zq-to-super-upgrades.md');
+  it('matches the frontmatter in zq-to-super-upgrades.md', async () => {
+    const { getDocsDir } = await import('superkit');
+    const upgradeDoc = join(getDocsDir(), 'zq-to-super-upgrades.md');
     const content = readFileSync(upgradeDoc, 'utf-8');
     const match = content.match(/superdb_version:\s*"([^"]+)"/);
     expect(match).not.toBeNull();

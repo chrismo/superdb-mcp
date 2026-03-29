@@ -5,7 +5,7 @@ import {
   getExpertDoc,
   clearExpertCache,
   SECTION_SLUGS,
-} from '../lib/expert-sections.js';
+} from 'superkit';
 import { superHelp } from '../tools/info.js';
 
 // Synthetic markdown for unit tests
