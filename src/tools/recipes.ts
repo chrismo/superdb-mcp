@@ -1,8 +1,8 @@
-import { superRecipes as _superRecipes } from 'superkit';
-import type { RecipesResult } from 'superkit';
+import { superRecipes as _superRecipes } from '@chrismo/superkit';
+import type { RecipesResult } from '@chrismo/superkit';
 import { getVersionNote } from '../lib/version.js';
 
-export type { RecipeFunction, RecipeArg, RecipeExample, RecipesResult } from 'superkit';
+export type { RecipeFunction, RecipeArg, RecipeExample, RecipesResult } from '@chrismo/superkit';
 
 /**
  * Search/list recipe functions, with MCP version note.

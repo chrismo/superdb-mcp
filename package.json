@@ -34,7 +34,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "superkit": "file:../superkit"
+    "@chrismo/superkit": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -5,7 +5,7 @@ import {
   getExpertDoc,
   clearExpertCache,
   SECTION_SLUGS,
-} from 'superkit';
+} from '@chrismo/superkit';
 import { superHelp } from '../tools/info.js';
 
 // Synthetic markdown for unit tests
@@ -155,7 +155,7 @@ describe('superHelp expert integration', () => {
     expect(result.content).toContain('`expert:sql`');
     expect(result.sections).toBeDefined();
     expect(result.sections!.length).toBeGreaterThan(5);
-    expect(result.web_url).toContain('/expert-guide');
+    expect(result.web_url).toContain('/superdb-expert');
   });
 
   it('expert overview is significantly smaller than full doc', () => {
@@ -178,7 +178,7 @@ describe('superHelp expert integration', () => {
     expect(result.success).toBe(true);
     expect(result.content).toContain('PostgreSQL');
     expect(result.content).not.toContain('Aggregate Functions');
-    expect(result.web_url).toContain('/expert-guide');
+    expect(result.web_url).toContain('/superdb-expert');
   });
 
   it('expert:aggregates returns aggregates section', () => {

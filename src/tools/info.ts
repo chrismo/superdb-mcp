@@ -12,8 +12,8 @@ import {
 } from '../lib/version.js';
 import { runSuper } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
-import { superHelp as _superHelp } from 'superkit';
-import type { HelpResult as SuperkitHelpResult } from 'superkit';
+import { superHelp as _superHelp } from '@chrismo/superkit';
+import type { HelpResult as SuperkitHelpResult } from '@chrismo/superkit';
 
 // Get paths
 const __filename = fileURLToPath(import.meta.url);

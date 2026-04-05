@@ -10,7 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
-import { getDocsDir } from 'superkit';
+import { getDocsDir } from '@chrismo/superkit';
 
 import { superQuery, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
