@@ -43,7 +43,7 @@ describe('superHelp tutorials', () => {
     const result = superHelp('expert');
     expect(result.success).toBe(true);
     expect(result.content).toContain('SuperDB');
-    expect(result.web_url).toContain('/expert-guide');
+    expect(result.web_url).toContain('/superdb-expert');
   });
 
   it('includes tutorials in error message for unknown topics', () => {

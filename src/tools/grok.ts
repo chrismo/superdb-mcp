@@ -1,8 +1,8 @@
-import { superGrokPatterns as _superGrokPatterns } from 'superkit';
-import type { GrokPatternsResult } from 'superkit';
+import { superGrokPatterns as _superGrokPatterns } from '@chrismo/superkit';
+import type { GrokPatternsResult } from '@chrismo/superkit';
 import { getVersionNote } from '../lib/version.js';
 
-export type { GrokPattern, GrokPatternsResult } from 'superkit';
+export type { GrokPattern, GrokPatternsResult } from '@chrismo/superkit';
 
 /**
  * Search/filter grok patterns, with MCP version note.
