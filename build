@@ -14,5 +14,7 @@ if [[ "${1:-}" == "deploy" ]]; then
   git tag "v${version}"
   git push
   git push --tags
-  npm publish
+
+  read -rp "npm OTP: " otp
+  npm publish --otp="${otp}"
 fi
