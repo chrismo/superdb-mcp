@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-04-05 (targets SuperDB v0.3.0)
+
+### Fixed
+- Server version in MCP handshake now reports 1.6.1 (was stuck at 1.5.0 in 1.6.0)
+- Added changelog for 1.6.0 changes
+
+## [1.6.0] - 2026-04-05 (targets SuperDB v0.3.0)
+
+### Changed
+- Content (docs, grok patterns, recipes, expert guide) now consumed from `@chrismo/superkit` npm package instead of bundled locally
+- Removed local `docs/` directory and `src/lib/expert-sections.ts` — superkit is the single source of truth
+- Removed `.github/workflows/sync-to-superkit.yml` (no longer needed)
+
 ## [1.5.0] - 2026-03-28 (targets SuperDB v0.3.0)
 
 ### Added
