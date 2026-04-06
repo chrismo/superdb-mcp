@@ -25,7 +25,7 @@ const docsDir = getDocsDir();
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.6.2',
+    version: '1.6.3',
   },
   {
     capabilities: {
