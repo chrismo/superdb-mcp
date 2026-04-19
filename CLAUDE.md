@@ -42,13 +42,15 @@ This is an MCP (Model Context Protocol) server that wraps the SuperDB `super` bi
 - **`src/tools/info.ts`** - `super_info`, `super_help`, `super_test_compat` - version/docs/compatibility
 - **`src/tools/lsp.ts`** - `super_complete`, `super_docs` - LSP-powered code intelligence
 
-### Resources
+### Content & Resources
 
-The server exposes two MCP resources from `docs/`:
-- `superdb://docs/expert` → `docs/superdb-expert.md` (query syntax guide)
-- `superdb://docs/upgrade-guide` → `docs/zq-to-super-upgrades.md` (migration guide)
+All content (docs, tutorials, recipes, grok patterns, expert guide) is consumed from the [`@chrismo/superkit`](https://github.com/chrismo/superkit) npm package — superkit is the single source of truth. This repo no longer has a local `docs/` directory.
 
-This repo is the authoritative source for all docs. [Superkit](https://github.com/chrismo/superkit) consumes them for web publishing. Use `/sync` to check for upstream SuperDB breaking changes and verify LSP version sync.
+The server exposes two MCP resources sourced from superkit's docs directory:
+- `superdb://docs/expert` → `superdb-expert.md` (query syntax guide)
+- `superdb://docs/upgrade-guide` → `zq-to-super-upgrades.md` (migration guide)
+
+Use `/sync` to check for upstream SuperDB breaking changes and verify LSP version sync.
 
 ### Environment Variables
 

@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
+import { getDocsDir } from '@chrismo/superkit';
 
 /**
  * SuperDB version scheme:
@@ -266,20 +266,18 @@ export function compareVersionInfo(
 }
 
 /**
- * Read version from embedded docs frontmatter
+ * Read version from superkit docs frontmatter
  */
 export function getDocsVersion(): string {
   try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const upgradeDoc = join(__dirname, '../../docs/zq-to-super-upgrades.md');
+    const upgradeDoc = join(getDocsDir(), 'zq-to-super-upgrades.md');
     const content = readFileSync(upgradeDoc, 'utf-8');
     const match = content.match(/superdb_version:\s*"([^"]+)"/);
     if (match) return match[1];
   } catch {
     // fall through to hardcoded fallback
   }
-  return '0.3.0';
+  return 'unknown';
 }
 
 /**

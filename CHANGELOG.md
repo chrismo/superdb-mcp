@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.4] - 2026-04-19 (targets SuperDB v0.3.0)
+
+### Fixed
+- `getDocsVersion()` now reads from superkit's docs directory instead of the removed local `docs/` path — was silently falling back to a hardcoded version since 1.6.0
+
+### Changed
+- Updated CLAUDE.md and sync command to reflect that superkit is the single source of truth for content (relationship was described backwards since 1.6.0)
+
 ## [1.6.3] - 2026-04-05 (targets SuperDB v0.3.0)
 
 ### Changed

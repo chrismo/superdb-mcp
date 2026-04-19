@@ -1,12 +1,12 @@
 # Sync SuperDB Docs
 
-Check for upstream SuperDB breaking changes, verify LSP version sync, and push docs to superkit for web publishing.
+Check for upstream SuperDB breaking changes and verify LSP version sync.
 
 **This command runs autonomously. No user confirmation required.**
 
 ## Context
 
-This repo (superdb-mcp) is the **authoritative source** for all docs, tutorials, recipes, and grok patterns. Superkit consumes them for web publishing via the `sync-to-superkit.yml` GitHub Action. The upstream SuperDB repo (brimdata/super) may introduce breaking changes that need to be reflected in the migration guide and expert doc.
+All docs, tutorials, recipes, and grok patterns are consumed from the [`@chrismo/superkit`](https://github.com/chrismo/superkit) npm package — superkit is the **single source of truth**. The upstream SuperDB repo (brimdata/super) may introduce breaking changes that need to be reflected in superkit's migration guide and expert doc; this command surfaces those so they can be addressed upstream in superkit and then pulled in here via a dependency bump.
 
 ## Execution Plan
 
@@ -16,7 +16,7 @@ This phase is **informational only** — it reports findings for human review, d
 
 **Step 1: Extract current doc version**
 
-Read the frontmatter from `docs/zq-to-super-upgrades.md` to get the current `superdb_version`.
+Read the frontmatter from `node_modules/@chrismo/superkit/docs/zq-to-super-upgrades.md` to get the current `superdb_version`. (Docs come from the superkit npm package — there is no local `docs/` directory.)
 
 **Step 2: Check asdf-superdb versions.txt**
 
@@ -96,12 +96,9 @@ Output a summary:
 ### Breaking Change Scan
 [Include the full breaking change scan output from Phase 1 here]
 
-### Superkit Sync
-Docs are automatically pushed to superkit via the sync-to-superkit.yml GitHub Action on pushes to main that touch docs/.
-
 ### Next Steps
-- [If breaking changes found]: Update migration guide and expert doc, then bump version
-- [If docs-behind]: Consider updating docs to match latest SuperDB release
+- [If breaking changes found]: Update migration guide and expert doc **in the superkit repo**, publish a new superkit release, then bump `@chrismo/superkit` in `package.json` here
+- [If docs-behind]: Consider updating docs in superkit to match latest SuperDB release, then bump the dep here
 - [If everything in sync]: No action needed
 ```
 
