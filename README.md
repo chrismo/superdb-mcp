@@ -121,9 +121,13 @@ common zq-to-SuperDB syntax changes (yield→values, over→unnest, func→fn, e
 query: string         # Required: The SuperSQL query
 files?: string[]      # Pipeline-style input (not for SQL FROM; use absolute paths in FROM)
 data?: string         # Inline data (alternative to files)
-format?: string       # Output: json (default), sup, csv, table
+format?: string       # Output: json (default), sup, csv, table, line, tsv, jsup, zeek
 inputFormat?: string  # Force input format
 ```
+
+Binary formats (`bsup`, `csup`, `db`, `parquet`, `arrows`) are rejected: results
+are returned as text, and binary output does not survive UTF-8 decoding. Use
+`line` for undecorated scalar output.
 
 #### `super_schema`
 Inspect types in a data file by finding unique shapes with counts and examples.
@@ -141,7 +145,7 @@ Query data from a database pool.
 query: string         # The SuperSQL query
 pool?: string         # Pool name
 lake?: string         # Lake path
-format?: string       # Output format
+format?: string       # Output: json (default), sup, csv, table, line, tsv, jsup, zeek
 ```
 
 #### `super_db_list`
