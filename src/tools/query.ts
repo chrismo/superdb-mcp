@@ -1,12 +1,13 @@
 import { basename } from 'path';
 import { runSuper, parseNDJSON } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
+import { resolveFormatArgs, type OutputFormat } from '../lib/formats.js';
 
 export interface QueryParams {
   query: string;
   files?: string[];
   data?: string;
-  format?: 'json' | 'sup' | 'csv' | 'table';
+  format?: OutputFormat;
   inputFormat?: string;
   version?: string;
 }
@@ -35,25 +36,53 @@ export interface SchemaResult {
 }
 
 /**
+ * Errors that name resolution or signatures can answer — the cases where
+ * super_docs is worth reaching for. Anything else (bad paths, encoding errors,
+ * syntax) it cannot help with.
+ */
+const LOOKUP_ERRORS = /no such function|no such user operator|too many arguments|too few arguments/;
+
+/**
+ * Extract the source text a super error underlines.
+ *
+ * Errors that point into the query carry the offending token on the line below
+ * it, underlined with tildes:
+ *
+ *   file does not exist at line 1, column 15:
+ *   select * from "test-data.json"
+ *                 ~~~~~~~~~~~~~~~~
+ */
+function underlinedToken(error: string): string | null {
+  const lines = error.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const marks = lines[i].match(/^(\s*)(~+)$/);
+    if (!marks) continue;
+    const token = lines[i - 1].slice(marks[1].length, marks[1].length + marks[2].length);
+    return token.replace(/^["']|["']$/g, '') || null;
+  }
+  return null;
+}
+
+/**
  * Execute a SuperSQL query
  */
 export async function superQuery(params: QueryParams): Promise<QueryResult> {
   const { query, files, data, format = 'json', inputFormat, version } = params;
   const superPath = resolveSuperPath(version);
 
-  // Build arguments
-  const args: string[] = [];
-
   // Output format
-  if (format === 'json') {
-    args.push('-j');  // Line-oriented JSON
-  } else if (format === 'sup') {
-    args.push('-s');
-  } else if (format === 'csv') {
-    args.push('-f', 'csv');
-  } else if (format === 'table') {
-    args.push('-f', 'table');
+  const outputFormat = resolveFormatArgs(format);
+  if (outputFormat.args === null) {
+    return {
+      success: false,
+      data: null,
+      rowCount: 0,
+      error: outputFormat.error,
+    };
   }
+
+  // Build arguments
+  const args: string[] = [...outputFormat.args];
 
   // Input format override
   if (inputFormat) {
@@ -77,16 +106,20 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
     const error = result.stderr.trim() || 'Query failed with no error message';
     const suggestions: string[] = [];
 
-    if (error.includes('yield')) {
+    // Word-bounded: a bare `includes` matched these inside longer identifiers
+    // (e.g. "func" in "nosuchfunc").
+    if (/\byield\b/.test(error)) {
       suggestions.push('Did you mean "values"? (yield was renamed to values in SuperDB)');
     }
-    if (error.includes('over')) {
+    if (/\bover\b/.test(error)) {
       suggestions.push('Did you mean "unnest"? (over was renamed to unnest in SuperDB)');
     }
-    if (error.match(/\/.*\//)) {
+    // Match the literal in the query, not the error: /.*/ against the error
+    // text tripped on any absolute path super echoed back.
+    if (error.includes('parse error') && /(^|[\s(=~,|])\/[^/\s]+\/([\s)|,]|$)/.test(query)) {
       suggestions.push('Inline regex /pattern/ is not supported. Use string patterns: \'pattern\'');
     }
-    if (error.includes('func')) {
+    if (/\bfunc\b/.test(error)) {
       suggestions.push('Did you mean "fn"? (func was renamed to fn in SuperDB)');
     }
     if (error.includes('type mismatch') && error.includes('string + string')) {
@@ -95,23 +128,35 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
     if (query.match(/\bop\s+\w+\s*\(/)) {
       suggestions.push('Remove parentheses from operator definition: "op name(a, b):" should be "op name a, b:"');
     }
-    if (error.includes('file does not exist') && files && files.length > 0) {
-      const missingMatch = error.match(/file does not exist: (\S+)/);
-      const missingName = missingMatch ? missingMatch[1] : null;
-      if (missingName) {
-        const match = files.find(f => basename(f) === missingName);
-        if (match) {
-          suggestions.push(`The file "${missingName}" was not found. Use the absolute path in your FROM clause: FROM "${match}"`);
-        } else {
-          suggestions.push('FROM clauses resolve paths relative to the server\'s working directory, not from the files parameter. Use absolute paths in FROM clauses.');
-        }
-      } else {
-        suggestions.push('FROM clauses resolve paths relative to the server\'s working directory, not from the files parameter. Use absolute paths in FROM clauses.');
-      }
+    // A FROM clause and the files parameter are mutually exclusive: files
+    // become super's stdin, and `from` refuses to run with a parent.
+    if (error.includes('from operator cannot have parent')) {
+      suggestions.push('Do not combine the files parameter with a FROM clause. Either drop files and put the absolute path in the query (FROM "/abs/path"), or drop FROM and let files feed the pipeline.');
+    }
+
+    // `<path>: file does not exist` — a path in the files parameter is missing.
+    // Unrelated to FROM resolution, so it gets no FROM advice.
+    const missingInput = error.match(/^(.+): file does not exist$/m);
+    if (missingInput) {
+      suggestions.push(`The file "${missingInput[1]}" does not exist. Check the path in the files parameter.`);
+    } else if (error.includes('file does not exist')) {
+      // `file does not exist at line L, column C:` — a path inside the query.
+      // The name is not in the message; it is underlined on the line below.
+      const token = underlinedToken(error);
+      suggestions.push(
+        token
+          ? `The path "${token}" in your FROM clause was not found. FROM resolves relative paths against the server's working directory, not yours — use an absolute path.`
+          : 'FROM clauses resolve relative paths against the server\'s working directory. Use absolute paths in FROM clauses.'
+      );
+    }
+
+    // Bare paths with hyphens or dots do not parse as identifiers.
+    if (error.includes('parse error') && /\bfrom\s+[^\s'"]*[-.][^\s'"]*/i.test(query)) {
+      suggestions.push('Quote the path in your FROM clause: FROM "some-file.json". Unquoted paths containing "-" or "." are not valid identifiers.');
     }
 
     // Nudge toward LSP tools when available and error suggests a function/keyword issue
-    if (process.env.SUPERDB_LSP_PATH) {
+    if (process.env.SUPERDB_LSP_PATH && LOOKUP_ERRORS.test(error)) {
       suggestions.push('Tip: use super_docs to look up function signatures and keyword documentation before retrying.');
     }
 

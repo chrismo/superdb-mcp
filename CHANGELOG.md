@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-07-27 (targets SuperDB v0.3.0)
+
+### Fixed
+- Unrecognized `format` values no longer fall through to `super`'s binary bsup default and get reported as success. `super_query` and `super_db_query` now reject unknown formats with `success: false` and an error naming the valid ones ([#10](https://github.com/chrismo/superdb-mcp/issues/10))
+- Migration-hint tests in `query.test.ts` were passing a thunk to `it.skipIf()`, which is always truthy — six tests had never actually run
+- The LSP `super_docs` tip was appended to every failed query whenever `SUPERDB_LSP_PATH` was set, contrary to its own comment. It now fires only on name/signature errors (`no such function`, `no such user operator`, `too many`/`too few arguments`), so `suggestions` is meaningful again
+- FROM-clause hints matched `/file does not exist: (\S+)/`, a shape `super` does not emit. The real shapes are `<path>: file does not exist` (missing `files` entry) and `file does not exist at line L, column C:` with the path underlined below (path inside the query) — both are now handled, and a missing `files` entry no longer draws unrelated FROM advice
+- Added a hint for combining the `files` parameter with a `FROM` clause (`from operator cannot have parent`), and for unquoted paths containing `-` or `.`
+- The inline-regex hint tested `/.*/ ` against the *error*, so any absolute path in the output tripped it. It now looks for a regex literal in the query
+- `yield`/`over`/`func` migration hints matched as bare substrings, firing on identifiers that merely contained them (`nosuchfunc` → "func was renamed"). Now word-bounded
+
+### Added
+- `format` accepts the text formats `line`, `tsv`, `jsup`, and `zeek` in addition to `json`, `sup`, `csv`, and `table`. `-f line` is the way to get an undecorated scalar out of `super`
+- Binary formats (`bsup`, `csup`, `db`, `parquet`, `arrows`) are rejected with an explanation — this server accumulates stdout as UTF-8, which corrupts binary output
+- Test coverage for output format handling, which previously had none
+
 ## [1.6.4] - 2026-04-19 (targets SuperDB v0.3.0)
 
 ### Fixed

@@ -1,5 +1,6 @@
 import { runSuperDb, parseNDJSON } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
+import { resolveFormatArgs, type OutputFormat } from '../lib/formats.js';
 
 export interface DbListResult {
   success: boolean;
@@ -11,7 +12,7 @@ export interface DbQueryParams {
   query: string;
   pool?: string;
   lake?: string;
-  format?: 'json' | 'sup' | 'csv' | 'table';
+  format?: OutputFormat;
   version?: string;
 }
 
@@ -81,18 +82,18 @@ export async function superDbQuery(params: DbQueryParams): Promise<DbQueryResult
   const { query, pool, lake, format = 'json', version } = params;
   const superPath = resolveSuperPath(version);
 
-  const args: string[] = [];
-
   // Output format
-  if (format === 'json') {
-    args.push('-j');
-  } else if (format === 'sup') {
-    args.push('-s');
-  } else if (format === 'csv') {
-    args.push('-f', 'csv');
-  } else if (format === 'table') {
-    args.push('-f', 'table');
+  const outputFormat = resolveFormatArgs(format);
+  if (outputFormat.args === null) {
+    return {
+      success: false,
+      data: null,
+      rowCount: 0,
+      error: outputFormat.error,
+    };
   }
+
+  const args: string[] = [...outputFormat.args];
 
   // Query - if pool specified, prepend FROM clause
   let fullQuery = query;

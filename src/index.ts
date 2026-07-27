@@ -12,6 +12,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
 import { getDocsDir } from '@chrismo/superkit';
 
+import { OUTPUT_FORMATS, type OutputFormat } from './lib/formats.js';
 import { superQuery, superSchema } from './tools/query.js';
 import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
 import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
@@ -25,7 +26,7 @@ const docsDir = getDocsDir();
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.6.4',
+    version: '1.7.0',
   },
   {
     capabilities: {
@@ -126,8 +127,8 @@ const tools = [
         },
         format: {
           type: 'string',
-          enum: ['json', 'sup', 'csv', 'table'],
-          description: 'Output format (default: json)',
+          enum: OUTPUT_FORMATS,
+          description: 'Output format (default: json). Binary formats (bsup, csup, db, parquet, arrows) are not supported.',
         },
         inputFormat: {
           type: 'string',
@@ -174,8 +175,8 @@ const tools = [
         },
         format: {
           type: 'string',
-          enum: ['json', 'sup', 'csv', 'table'],
-          description: 'Output format (default: json)',
+          enum: OUTPUT_FORMATS,
+          description: 'Output format (default: json). Binary formats (bsup, csup, db, parquet, arrows) are not supported.',
         },
         version: versionProperty,
       },
@@ -443,7 +444,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           query: args?.query as string,
           files: args?.files as string[] | undefined,
           data: args?.data as string | undefined,
-          format: args?.format as 'json' | 'sup' | 'csv' | 'table' | undefined,
+          format: args?.format as OutputFormat | undefined,
           inputFormat: args?.inputFormat as string | undefined,
           version: args?.version as string | undefined,
         });
@@ -471,7 +472,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           query: args?.query as string,
           pool: args?.pool as string | undefined,
           lake: args?.lake as string | undefined,
-          format: args?.format as 'json' | 'sup' | 'csv' | 'table' | undefined,
+          format: args?.format as OutputFormat | undefined,
           version: args?.version as string | undefined,
         });
         return {
