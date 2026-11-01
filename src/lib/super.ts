@@ -46,15 +46,26 @@ export async function runSuper(args: string[], stdin?: string, superPath?: strin
 }
 
 /**
- * Execute super db commands
+ * Execute a `super db` command (SuperDB v0.4.0+).
+ *
+ * `subcommand` is e.g. 'ls', 'load', or 'create'; pass null to run a query
+ * (`super db -c ...` — there is no `query` subcommand). `database` is passed
+ * as `-attach`, which applies to this command only; without it, super uses
+ * the database attached with `super db attach`.
  */
-export async function runSuperDb(subcommand: string, args: string[], lake?: string, superPath?: string): Promise<SuperResult> {
-  const fullArgs = ['db', subcommand];
-  if (lake) {
-    fullArgs.push('-lake', lake);
+export async function runSuperDb(
+  subcommand: string | null,
+  args: string[],
+  database?: string,
+  superPath?: string,
+  stdin?: string,
+): Promise<SuperResult> {
+  const fullArgs = subcommand ? ['db', subcommand] : ['db'];
+  if (database) {
+    fullArgs.push('-attach', database);
   }
   fullArgs.push(...args);
-  return runSuper(fullArgs, undefined, superPath);
+  return runSuper(fullArgs, stdin, superPath);
 }
 
 /**

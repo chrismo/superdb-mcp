@@ -12,19 +12,24 @@ const FORMAT_ARGS: Record<string, string[]> = {
   json: ['-j'],
   sup: ['-s'],
   csv: ['-f', 'csv'],
-  table: ['-f', 'table'],
   line: ['-f', 'line'],
   tsv: ['-f', 'tsv'],
-  jsup: ['-f', 'jsup'],
   zeek: ['-f', 'zeek'],
 };
 
 /** Formats `super -f` accepts but that cannot survive UTF-8 decoding. */
-const BINARY_FORMATS = ['arrows', 'bsup', 'csup', 'db', 'parquet'];
+const BINARY_FORMATS = ['arrows', 'bsup', 'db', 'parquet'];
+
+/** Formats removed in SuperDB v0.4.0, with what to use instead. */
+const REMOVED_FORMATS: Record<string, string> = {
+  table: "use 'csv' or 'tsv'",
+  jsup: "use 'json' or 'sup'",
+  csup: 'the columnar format is now part of BSUP (binary, not supported here)',
+};
 
 export const OUTPUT_FORMATS = Object.keys(FORMAT_ARGS);
 
-export type OutputFormat = 'json' | 'sup' | 'csv' | 'table' | 'line' | 'tsv' | 'jsup' | 'zeek';
+export type OutputFormat = 'json' | 'sup' | 'csv' | 'line' | 'tsv' | 'zeek';
 
 /**
  * Resolve a format to its CLI flags, or explain why it was rejected.
@@ -36,6 +41,12 @@ export function resolveFormatArgs(format: string): { args: string[]; error: null
   const args = FORMAT_ARGS[format];
   if (args) {
     return { args, error: null };
+  }
+  if (format in REMOVED_FORMATS) {
+    return {
+      args: null,
+      error: `output format '${format}' was removed in SuperDB v0.4.0: ${REMOVED_FORMATS[format]}. Use one of: ${OUTPUT_FORMATS.join(', ')}`,
+    };
   }
   if (BINARY_FORMATS.includes(format)) {
     return {

@@ -31,10 +31,10 @@
   - Consider what makes sense for the guide format: mdtest, custom tags, or something else
   - Goal: correct syntax highlighting and (ideally) testable examples
 
-- [ ] Add mdtest CI to validate tutorial code blocks
-  - Tutorials use mdtest annotations and can be tested via `./test-doc.sh`
-  - Requires local brimdata/super checkout with `kit_test.go` in `super/mdtest/`
-  - Add a GHA workflow that clones brimdata/super, installs Go, and runs mdtest
+- [x] Add mdtest CI to validate tutorial code blocks
+  - Done in superkit, where the docs now live: `scripts/mdtest.mjs` runs every
+    mdtest block against the SuperDB release pinned in `.superdb-version`, in CI.
+    `./test-doc.sh` here predates the move and has no local `docs/` to test.
 
 - [ ] General docs overhaul
   - Review all content for accuracy against current SuperDB version

@@ -9,6 +9,8 @@ export interface QueryParams {
   data?: string;
   format?: OutputFormat;
   inputFormat?: string;
+  /** Statically type-check all inputs (`super -static`). Needed for some SQL on JSON input. */
+  static?: boolean;
   version?: string;
 }
 
@@ -64,10 +66,67 @@ function underlinedToken(error: string): string | null {
 }
 
 /**
+ * Functions and operators removed or renamed in SuperDB v0.4.0, keyed by the
+ * old name. Matched against the name super underlines in a
+ * "no such function" / "no such user operator" error.
+ */
+const REMOVED_IN_V040: Record<string, string> = {
+  has: 'has(x) was replaced by is_ok(x) in SuperDB v0.4.0',
+  quiet: 'quiet(x) was removed in SuperDB v0.4.0; use ok(x), which turns errors into none (e.g. ok(x) ?? default)',
+  fields: 'fields(x) was replaced by paths(x) in SuperDB v0.4.0 (paths also descends into arrays and maps); for top-level keys use keys(x)',
+  max: 'The two-argument max(a, b) was renamed greatest(a, b) in SuperDB v0.4.0 (the max() aggregate is unchanged)',
+  min: 'The two-argument min(a, b) was renamed least(a, b) in SuperDB v0.4.0 (the min() aggregate is unchanged)',
+  unblend: 'unblend() was renamed defuse() in SuperDB v0.4.0 (and the old defuse() is now superdefuse())',
+  blend: 'The blend operator was renamed fuse in SuperDB v0.4.0 (and the old fuse is now superfuse)',
+};
+
+/** Suggestions for errors caused by SuperDB v0.4.0 breaking changes. */
+function v040Suggestions(query: string, error: string): string[] {
+  const suggestions: string[] = [];
+
+  // "no such function" underlines the call (`has(a)`); "no such user
+  // operator" quotes the name (`no such user operator: "blend"`).
+  let name: string | undefined;
+  if (error.includes('no such function')) {
+    name = underlinedToken(error)?.match(/^(\w+)\s*\(/)?.[1];
+  } else {
+    name = error.match(/no such user operator: "(\w+)"/)?.[1];
+  }
+  if (name && REMOVED_IN_V040[name]) {
+    suggestions.push(REMOVED_IN_V040[name]);
+  }
+
+  // `missing` is now a type name, so missing(x) is a parse error.
+  if (error.includes('parse error') && /\bmissing\s*\(/.test(query)) {
+    suggestions.push('missing(x) was removed in SuperDB v0.4.0; use not is_ok(x)');
+  }
+  if (error.includes('parse error') && query.includes('|[')) {
+    suggestions.push('Set literals are written set[1,2] as of SuperDB v0.4.0 (was |[1,2]|)');
+  }
+  if (error.includes('parse error') && query.includes('|{')) {
+    suggestions.push('Map literals are written map{"a":1} as of SuperDB v0.4.0 (was |{"a":1}|)');
+  }
+
+  if (/: file format required$/m.test(error)) {
+    suggestions.push('As of SuperDB v0.4.0, a local file\'s format comes from its extension. For a file with no recognized extension, set the inputFormat parameter (e.g. "json", "sup", "csv", or "auto").');
+  }
+
+  if (error.includes('cannot be used for dynamic inputs') || error.includes('requires table-qualified reference')) {
+    suggestions.push('This SQL needs statically typed input. JSON and CSV inputs are dynamic as of SuperDB v0.4.0; set the static parameter to true (super -static).');
+  }
+
+  if (error.includes('cannot cast to time: type not yet implemented')) {
+    suggestions.push('The time type was renamed timestamp in SuperDB v0.4.0; ::time now means the (unimplemented) SQL time-of-day type. Use ::timestamp.');
+  }
+
+  return suggestions;
+}
+
+/**
  * Execute a SuperSQL query
  */
 export async function superQuery(params: QueryParams): Promise<QueryResult> {
-  const { query, files, data, format = 'json', inputFormat, version } = params;
+  const { query, files, data, format = 'json', inputFormat, static: isStatic, version } = params;
   const superPath = resolveSuperPath(version);
 
   // Output format
@@ -87,6 +146,10 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
   // Input format override
   if (inputFormat) {
     args.push('-i', inputFormat);
+  }
+
+  if (isStatic) {
+    args.push('-static');
   }
 
   // Query
@@ -155,6 +218,8 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
       suggestions.push('Quote the path in your FROM clause: FROM "some-file.json". Unquoted paths containing "-" or "." are not valid identifiers.');
     }
 
+    suggestions.push(...v040Suggestions(query, error));
+
     // Nudge toward LSP tools when available and error suggests a function/keyword issue
     if (process.env.SUPERDB_LSP_PATH && LOOKUP_ERRORS.test(error)) {
       suggestions.push('Tip: use super_docs to look up function signatures and keyword documentation before retrying.');
@@ -172,6 +237,11 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
   // Capture debug operator output from stderr (emitted in SUP format)
   const debugOutput = result.stderr.trim() || undefined;
 
+  // Some v0.4.0 breakage shows up as error values in otherwise-successful
+  // output rather than as a failed query.
+  const outputSuggestions = v040Suggestions(query, result.stdout);
+  const suggestionsField = outputSuggestions.length > 0 ? { suggestions: outputSuggestions } : {};
+
   // Parse output based on format
   if (format === 'json') {
     try {
@@ -181,6 +251,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
         data: parsed,
         rowCount: parsed.length,
         ...(debugOutput && { debug: debugOutput }),
+        ...suggestionsField,
         error: null,
       };
     } catch (e) {
@@ -190,6 +261,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
         rowCount: 0,
         raw: result.stdout,
         ...(debugOutput && { debug: debugOutput }),
+        ...suggestionsField,
         error: null,
       };
     }
@@ -201,6 +273,7 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
       rowCount: 0,
       raw: result.stdout,
       ...(debugOutput && { debug: debugOutput }),
+      ...suggestionsField,
       error: null,
     };
   }

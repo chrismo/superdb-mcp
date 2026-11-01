@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] (targets SuperDB v0.4.0)
+
+SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login` and `SUPER_DB` with `super db attach`, and removed or renamed many functions. Tool and parameter renames make this a breaking release for MCP clients (old names are still accepted).
+
+### Changed
+- **Database tools rewritten for SuperDB v0.4.0** and now covered by integration tests (they had none):
+  - `super_db_create_pool` → `super_db_create_table`, with a new `type` parameter (typed tables). The old tool name still works
+  - `pool` → `table` and `lake` → `database` parameters on all `super_db_*` tools. The old names are still accepted
+  - `database` is passed as `super db -attach`; without it, `super` uses the database attached with `super db attach`
+  - `super_db_list` returns `tables: [{name, id, sortKeys, sql}]` (from `super db ls -j`) instead of raw text lines
+  - `super_db_query` supports SQL `CREATE TABLE`, `CREATE SUPER TABLE`, `INSERT INTO`, and `DROP TABLE`, returning one status record per statement
+- Tool descriptions read the content target version from superkit's docs instead of hardcoding "v0.3.0"
+- Output formats `table`, `jsup`, and `csup` (removed in SuperDB v0.4.0) are rejected with an explanation and a replacement
+
+### Added
+- `super_query` `static` parameter (`super -static`): SQL like `SELECT *` and alias-qualified joins needs statically typed input, and JSON/CSV are dynamic in v0.4.0
+- Migration hints for SuperDB v0.4.0: `has()`→`is_ok()`, `missing()`→`not is_ok()`, `quiet()`→`ok()`, `fields()`→`paths()`/`keys()`, two-argument `max`/`min`→`greatest`/`least`, `blend`→`fuse`, `unblend()`→`defuse()`, `|[...]|`→`set[...]`, `|{...}|`→`map{...}`, `::time`→`::timestamp` (also flagged when it shows up as an error value in successful output), files without a recognized extension (→ `inputFormat`), and dynamic-input SQL errors (→ `static`)
+- `super_db_query` suggests the `database` parameter when no database is attached
+- CI workflow running the typecheck and tests against the SuperDB release pinned in `.superdb-version` (`scripts/install-super.sh`)
+
+### Fixed
+- `super_db_query` ran `super db query`, a subcommand that doesn't exist (queries are `super db -c`), so it always failed
+- All database tools passed `-lake`, a flag no SuperDB release accepts (v0.3.0 used `-db`; v0.4.0 uses `-attach`)
+- `super_db_load` passed the pool name as a positional argument instead of `-use`
+- Debug-output tests only ran when v0.3.0 was installed through asdf; they now run against the default `super`
+- Vitest no longer picks up stale compiled tests in `dist/`
+
 ## [1.7.0] - 2026-07-27 (targets SuperDB v0.3.0)
 
 ### Fixed
