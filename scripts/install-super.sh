@@ -34,7 +34,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "Downloading $url" >&2
-curl -fsSL -o "$tmp/super.tar.gz" "$url"
+curl -fsSL --retry 3 -o "$tmp/super.tar.gz" "$url"
 tar -xzf "$tmp/super.tar.gz" -C "$tmp" super
 
 mkdir -p "$dest"

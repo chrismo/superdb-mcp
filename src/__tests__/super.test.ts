@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { parseNDJSON, tryParseJSON } from '../lib/super.js';
+import { parseNDJSON, tryParseJSON, runSuper } from '../lib/super.js';
+
+const superAvailable = await runSuper(['--version'])
+  .then(r => r.exitCode === 0)
+  .catch(() => false);
 
 describe('parseNDJSON', () => {
   it('parses single-line JSON', () => {
@@ -62,5 +66,16 @@ describe('tryParseJSON', () => {
     expect(tryParseJSON('not json')).toBeNull();
     expect(tryParseJSON('{broken')).toBeNull();
     expect(tryParseJSON('')).toBeNull();
+  });
+});
+
+describe('runSuper', () => {
+  // super exits on the parse error without reading stdin, so writing a large
+  // input hits EPIPE. Without a stdin error listener that crashed the server.
+  it.skipIf(!superAvailable)('survives super exiting before it reads all of stdin', async () => {
+    const big = '{a:1}\n'.repeat(4_000_000);
+    const result = await runSuper(['-c', 'values (', '-'], big);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain('parse error');
   });
 });

@@ -2,6 +2,7 @@ import { basename } from 'path';
 import { runSuper, parseNDJSON } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
 import { resolveFormatArgs, type OutputFormat } from '../lib/formats.js';
+import { stripLiterals } from '../lib/query-text.js';
 
 export interface QueryParams {
   query: string;
@@ -80,44 +81,74 @@ const REMOVED_IN_V040: Record<string, string> = {
   blend: 'The blend operator was renamed fuse in SuperDB v0.4.0 (and the old fuse is now superfuse)',
 };
 
+/**
+ * Names super reports as unknown. super reports every error at once; each
+ * "no such function" block underlines the call (`has(a)`), and "no such user
+ * operator" quotes the name (`no such user operator: "blend"`).
+ */
+function unknownNames(error: string): string[] {
+  const names: string[] = [];
+  const lines = error.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].startsWith('no such function')) continue;
+    const marks = lines[i + 2]?.match(/^(\s*)(~+)$/);
+    if (!marks) continue;
+    const token = lines[i + 1].slice(marks[1].length, marks[1].length + marks[2].length);
+    const name = token.match(/^(\w+)\s*\(/)?.[1];
+    if (name) names.push(name);
+  }
+  for (const m of error.matchAll(/no such user operator: "(\w+)"/g)) {
+    names.push(m[1]);
+  }
+  return names;
+}
+
+/** The ::time hint, for a query that casts to time and got the not-implemented error. */
+function timeCastSuggestions(query: string, output: string): string[] {
+  const casts = /::\s*time\b|<time>/.test(stripLiterals(query));
+  return casts && output.includes('cannot cast to time: type not yet implemented')
+    ? ['The time type was renamed timestamp in SuperDB v0.4.0; ::time now means the (unimplemented) SQL time-of-day type. Use ::timestamp.']
+    : [];
+}
+
 /** Suggestions for errors caused by SuperDB v0.4.0 breaking changes. */
 function v040Suggestions(query: string, error: string): string[] {
   const suggestions: string[] = [];
+  // Old syntax is only evidence when it is in the query itself, not inside a
+  // string or regex literal.
+  const code = stripLiterals(query);
 
-  // "no such function" underlines the call (`has(a)`); "no such user
-  // operator" quotes the name (`no such user operator: "blend"`).
-  let name: string | undefined;
-  if (error.includes('no such function')) {
-    name = underlinedToken(error)?.match(/^(\w+)\s*\(/)?.[1];
-  } else {
-    name = error.match(/no such user operator: "(\w+)"/)?.[1];
-  }
-  if (name && REMOVED_IN_V040[name]) {
-    suggestions.push(REMOVED_IN_V040[name]);
+  for (const name of new Set(unknownNames(error))) {
+    // hasOwn: a plain lookup finds toString, constructor, ... on the prototype.
+    if (Object.hasOwn(REMOVED_IN_V040, name)) {
+      suggestions.push(REMOVED_IN_V040[name]);
+    }
   }
 
-  // `missing` is now a type name, so missing(x) is a parse error.
-  if (error.includes('parse error') && /\bmissing\s*\(/.test(query)) {
-    suggestions.push('missing(x) was removed in SuperDB v0.4.0; use not is_ok(x)');
-  }
-  if (error.includes('parse error') && query.includes('|[')) {
-    suggestions.push('Set literals are written set[1,2] as of SuperDB v0.4.0 (was |[1,2]|)');
-  }
-  if (error.includes('parse error') && query.includes('|{')) {
-    suggestions.push('Map literals are written map{"a":1} as of SuperDB v0.4.0 (was |{"a":1}|)');
+  if (error.includes('parse error')) {
+    // `missing` is now a type name, so missing(x) is a parse error.
+    if (/\bmissing\s*\(/.test(code)) {
+      suggestions.push('missing(x) was removed in SuperDB v0.4.0; use not is_ok(x)');
+    }
+    if (/\|\[[^\]]*\]\|/.test(code)) {
+      suggestions.push('Set literals are written set[1,2] as of SuperDB v0.4.0 (was |[1,2]|)');
+    }
+    if (/\|\{[^}]*\}\|/.test(code)) {
+      suggestions.push('Map literals are written map{"a":1} as of SuperDB v0.4.0 (was |{"a":1}|)');
+    }
   }
 
-  if (/: file format required$/m.test(error)) {
-    suggestions.push('As of SuperDB v0.4.0, a local file\'s format comes from its extension. For a file with no recognized extension, set the inputFormat parameter (e.g. "json", "sup", "csv", or "auto").');
+  // `<file>: file format required` for the files parameter, and
+  // `file format required at line L, column C:` for a path in FROM.
+  if (/file format required($| at line)/m.test(error)) {
+    suggestions.push('As of SuperDB v0.4.0, a local file\'s format comes from its extension. For a file with no recognized extension, set the inputFormat parameter (e.g. "json", "sup", "csv", or "auto"), or name the format in the query: from "file" (format json).');
   }
 
   if (error.includes('cannot be used for dynamic inputs') || error.includes('requires table-qualified reference')) {
     suggestions.push('This SQL needs statically typed input. JSON and CSV inputs are dynamic as of SuperDB v0.4.0; set the static parameter to true (super -static).');
   }
 
-  if (error.includes('cannot cast to time: type not yet implemented')) {
-    suggestions.push('The time type was renamed timestamp in SuperDB v0.4.0; ::time now means the (unimplemented) SQL time-of-day type. Use ::timestamp.');
-  }
+  suggestions.push(...timeCastSuggestions(query, error));
 
   return suggestions;
 }
@@ -237,9 +268,10 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
   // Capture debug operator output from stderr (emitted in SUP format)
   const debugOutput = result.stderr.trim() || undefined;
 
-  // Some v0.4.0 breakage shows up as error values in otherwise-successful
-  // output rather than as a failed query.
-  const outputSuggestions = v040Suggestions(query, result.stdout);
+  // A ::time cast yields error values in otherwise-successful output rather
+  // than a failed query. Only that hint applies here: the others match error
+  // text, which in successful output is just data.
+  const outputSuggestions = timeCastSuggestions(query, result.stdout);
   const suggestionsField = outputSuggestions.length > 0 ? { suggestions: outputSuggestions } : {};
 
   // Parse output based on format
@@ -282,11 +314,12 @@ export async function superQuery(params: QueryParams): Promise<QueryResult> {
 /**
  * Inspect schema/types of a file by finding unique shapes
  */
-export async function superSchema(file: string, version?: string): Promise<SchemaResult> {
+export async function superSchema(file: string, version?: string, inputFormat?: string): Promise<SchemaResult> {
   const superPath = resolveSuperPath(version);
   // Use aggregation to find unique shapes with counts and examples
   const query = 'count(), any(this) by typeof(this) | sort -r count';
-  const result = await runSuper(['-j', '-c', query, file], undefined, superPath);
+  const formatArgs = inputFormat ? ['-i', inputFormat] : [];
+  const result = await runSuper(['-j', ...formatArgs, '-c', query, file], undefined, superPath);
 
   if (result.exitCode !== 0) {
     return {
