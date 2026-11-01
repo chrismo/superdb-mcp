@@ -22,10 +22,14 @@ export async function runSuper(args: string[], stdin?: string, superPath?: strin
     let stdout = '';
     let stderr = '';
 
+    // super can exit before reading all of stdin (e.g. on a parse error).
+    // The write then fails with EPIPE, which crashes the process unless
+    // handled; the exit code and stderr already report what went wrong.
+    proc.stdin.on('error', () => {});
     if (stdin !== undefined) {
       proc.stdin.write(stdin);
-      proc.stdin.end();
     }
+    proc.stdin.end();
 
     proc.stdout.on('data', (chunk) => {
       stdout += chunk.toString();

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { superQuery } from '../tools/query.js';
+import { superQuery, superSchema } from '../tools/query.js';
 import { superDbQuery } from '../tools/db.js';
 import { runSuper } from '../lib/super.js';
 
@@ -276,10 +276,46 @@ describe('superQuery v0.4.0 migration hints', () => {
     });
   }
 
-  it.skipIf(!superAvailable)('does not suggest greatest() for the max() aggregate', async () => {
-    const result = await superQuery({ query: 'aggregate m:=max(a) | values nosuchfunc(m)', data: '{a:1}' });
-    expect(result.success).toBe(false);
-    expect(result.suggestions?.some(s => s.includes('greatest(')) ?? false).toBe(false);
+  it.skipIf(!superAvailable)('does not return null hints for names on Object.prototype', async () => {
+    for (const query of ['values toString(a)', 'values valueOf(a)', 'constructor']) {
+      const result = await superQuery({ query, data: '{a:1}' });
+      expect(result.success).toBe(false);
+      // The prototype lookup returned the function itself, which JSON
+      // serializes as null.
+      expect((result.suggestions ?? []).every(s => typeof s === 'string'), query).toBe(true);
+    }
+  });
+
+  it.skipIf(!superAvailable)('hints every removed function, not just the first error', async () => {
+    const result = await superQuery({ query: 'values has(a), quiet(a)', data: '{a:1}' });
+    expect(result.suggestions!.some(s => s.includes('is_ok('))).toBe(true);
+    expect(result.suggestions!.some(s => s.includes('ok(x)'))).toBe(true);
+
+    const afterFileError = await superQuery({ query: 'from "/nonexistent.json" | values has(a)' });
+    expect(afterFileError.suggestions!.some(s => s.includes('is_ok('))).toBe(true);
+  });
+
+  it.skipIf(!superAvailable)('does not fire syntax hints on text inside strings and regexes', async () => {
+    const cases: Array<[string, string]> = [
+      ['where grep(/error|[Ww]arn/, s) | values (', 'set['],
+      ['where s=="a|{b" | values (', 'map{'],
+      ['where s=="missing(x)" | values (', 'missing(x)'],
+    ];
+    for (const [query, hint] of cases) {
+      const result = await superQuery({ query, data: '{s:"x"}' });
+      expect(result.success, query).toBe(false);
+      expect(result.suggestions?.some(s => s.includes(hint)) ?? false, query).toBe(false);
+    }
+  });
+
+  it.skipIf(!superAvailable)('does not hint from data that merely looks like a super error', async () => {
+    const result = await superQuery({
+      format: 'line',
+      query: 'values msg',
+      data: '{msg:"no such function at line 1, column 8:\\nvalues has(a)\\n       ~~~~~~"}\n{msg:"no such user operator: \\"blend\\""}',
+    });
+    expect(result.success).toBe(true);
+    expect(result.suggestions).toBeUndefined();
   });
 
   it.skipIf(!superAvailable)('suggests inputFormat when a file has no recognized extension', async () => {
@@ -293,6 +329,19 @@ describe('superQuery v0.4.0 migration hints', () => {
 
       const fixed = await superQuery({ query: 'values a', files: [file], inputFormat: 'json' });
       expect(fixed.data).toEqual([1]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(!superAvailable)('suggests inputFormat when a FROM path has no recognized extension', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'superdb-mcp-q-'));
+    const file = join(dir, 'noext');
+    writeFileSync(file, '{"a":1}\n');
+    try {
+      const result = await superQuery({ query: `from "${file}" | values a` });
+      expect(result.success).toBe(false);
+      expect(result.suggestions!.some(s => s.includes('inputFormat'))).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -324,5 +373,20 @@ describe('superQuery static type checking', () => {
     const result = await superQuery({ query: `select * from "${file}" order by id`, static: true });
     expect(result.error).toBeNull();
     expect(result.data).toEqual([{ id: 1, v: 'a' }, { id: 2, v: 'b' }]);
+  });
+});
+
+describe('superSchema', () => {
+  it.skipIf(!superAvailable)('reads a file with no recognized extension given inputFormat', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'superdb-mcp-schema-'));
+    const file = join(dir, 'noext');
+    writeFileSync(file, '{"a":1}\n{"a":2}\n');
+    try {
+      const result = await superSchema(file, undefined, 'json');
+      expect(result.error).toBeNull();
+      expect(result.totalRecords).toBe(2);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

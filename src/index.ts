@@ -14,7 +14,7 @@ import { getDocsDir } from '@chrismo/superkit';
 
 import { OUTPUT_FORMATS, type OutputFormat } from './lib/formats.js';
 import { superQuery, superSchema } from './tools/query.js';
-import { superDbList, superDbQuery, superDbLoad, superDbCreateTable } from './tools/db.js';
+import { superDbList, superDbQuery, superDbLoad, superDbCreateTable, dbToolArgs } from './tools/db.js';
 import { getDocsVersion } from './lib/version.js';
 import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
 import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
@@ -113,14 +113,6 @@ const databaseProperty = {
   description: 'Path or URL of the database (passed as `super db -attach`). Omit to use the database attached with `super db attach`.',
 };
 
-// Accept the pre-v0.4.0 parameter names (pool, lake) from older clients.
-function tableArg(args: Record<string, unknown> | undefined): string | undefined {
-  return (args?.table ?? args?.pool) as string | undefined;
-}
-function databaseArg(args: Record<string, unknown> | undefined): string | undefined {
-  return (args?.database ?? args?.lake) as string | undefined;
-}
-
 // Tool definitions — grouped by category, ordered by likely usage frequency
 const tools = [
   // --- Query & Data ---
@@ -171,6 +163,10 @@ const tools = [
           type: 'string',
           description: 'Path to the data file',
         },
+        inputFormat: {
+          type: 'string',
+          description: 'Input format (e.g. json, sup, csv); needed when the file has no recognized extension',
+        },
         version: versionProperty,
       },
       required: ['file'],
@@ -179,7 +175,7 @@ const tools = [
   // --- Database (SuperDB v0.4.0+: tables, formerly pools) ---
   {
     name: 'super_db_query',
-    description: 'Run a query or SQL statements against a SuperDB database. Supports SQL CREATE TABLE, CREATE SUPER TABLE, INSERT INTO, and DROP TABLE (separate statements with ";"); each statement returns a status record. UPDATE and DELETE statements are not supported.',
+    description: 'Run a query or SQL statements against a SuperDB database. Supports SQL CREATE TABLE, CREATE SUPER TABLE, INSERT INTO, and DROP TABLE (separate statements with ";"); each statement returns a status record, and if one fails, data still holds the records of the statements before it. UPDATE and DELETE statements are not supported.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -189,7 +185,7 @@ const tools = [
         },
         table: {
           type: 'string',
-          description: 'Table name; prepends "from <table> |" when the query has no FROM',
+          description: 'Table name, or table@branch. The query reads from it unless the query has its own top-level FROM; an empty query returns the whole table.',
         },
         database: databaseProperty,
         format: {
@@ -469,7 +465,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'super_schema': {
-        const result = await superSchema(args?.file as string, args?.version as string | undefined);
+        const result = await superSchema(args?.file as string, args?.version as string | undefined, args?.inputFormat as string | undefined);
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
@@ -477,7 +473,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'super_db_list': {
         const result = await superDbList({
-          database: databaseArg(args),
+          database: dbToolArgs(args).database,
           version: args?.version as string | undefined,
         });
         return {
@@ -488,8 +484,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'super_db_query': {
         const result = await superDbQuery({
           query: args?.query as string,
-          table: tableArg(args),
-          database: databaseArg(args),
+          table: dbToolArgs(args).table,
+          database: dbToolArgs(args).database,
           format: args?.format as OutputFormat | undefined,
           version: args?.version as string | undefined,
         });
@@ -500,10 +496,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'super_db_load': {
         const result = await superDbLoad({
-          table: tableArg(args) as string,
+          table: dbToolArgs(args).table as string,
           files: args?.files as string[] | undefined,
           data: args?.data as string | undefined,
-          database: databaseArg(args),
+          database: dbToolArgs(args).database,
           version: args?.version as string | undefined,
         });
         return {
@@ -515,10 +511,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'super_db_create_table':
       case 'super_db_create_pool': {
         const result = await superDbCreateTable({
-          name: args?.name as string,
+          name: dbToolArgs(args).name as string,
           orderBy: args?.orderBy as string | undefined,
           type: args?.type as string | undefined,
-          database: databaseArg(args),
+          database: dbToolArgs(args).database,
           version: args?.version as string | undefined,
         });
         return {

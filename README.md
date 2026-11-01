@@ -144,6 +144,7 @@ Inspect types in a data file by finding unique shapes with counts and examples.
 
 ```
 file: string          # Path to data file
+inputFormat?: string  # Input format; needed for files without a recognized extension
 ```
 
 ### Database
@@ -160,11 +161,12 @@ The pre-v0.4.0 parameter names `pool` and `lake`, and the tool name
 #### `super_db_query`
 Run a query or SQL statements against a database. Supports SQL `CREATE TABLE`,
 `CREATE SUPER TABLE`, `INSERT INTO`, and `DROP TABLE`; separate statements with
-`;`. Each statement returns a status record.
+`;`. Each statement returns a status record; if one fails, the records of the
+statements before it are still returned.
 
 ```
 query: string         # The SuperSQL query or SQL statements
-table?: string        # Prepends "from <table> |" when the query has no FROM
+table?: string        # Table (or table@branch) to read unless the query has a top-level FROM
 database?: string     # Database path or URL (default: attached database)
 format?: string       # Output: json (default), sup, csv, line, tsv, zeek
 ```
@@ -181,7 +183,7 @@ Create a table. Tables are unsorted unless `orderBy` is set. With `type`, every
 loaded value is cast to it, and a load is rejected if any value can't be cast.
 
 ```
-name: string          # Table name
+name: string          # Table name (`table` is accepted too)
 orderBy?: string      # Sort key, e.g. "ts:desc"
 type?: string         # SUP type, e.g. "{id:int64,msg:string}"
 database?: string     # Database path or URL (default: attached database)

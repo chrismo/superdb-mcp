@@ -1,6 +1,7 @@
 import { runSuperDb, parseNDJSON } from '../lib/super.js';
 import { resolveSuperPath } from '../lib/asdf.js';
 import { resolveFormatArgs, type OutputFormat } from '../lib/formats.js';
+import { hasTopLevelFrom } from '../lib/query-text.js';
 
 // SuperDB v0.4.0 renamed database "pools" to "tables" and replaced
 // `super db auth`/`login` and SUPER_DB with `super db attach`. These tools
@@ -20,6 +21,7 @@ export interface DbListResult {
   success: boolean;
   tables: TableInfo[];
   error: string | null;
+  suggestions?: string[];
 }
 
 export interface DbListParams {
@@ -44,8 +46,64 @@ export interface DbQueryResult {
   suggestions?: string[];
 }
 
-const NO_DATABASE_HINT =
-  'Pass the database parameter (a database path or URL), or attach one with `super db attach <location>`. Create a new database with `super db init <path>`.';
+/**
+ * Read the db tools' arguments, accepting the pre-v0.4.0 names `pool` and
+ * `lake` from older clients. `name` (for create) also falls back to the
+ * table, since every other db tool calls it `table`.
+ */
+export function dbToolArgs(args: Record<string, unknown> | undefined): {
+  table: string | undefined;
+  database: string | undefined;
+  name: string | undefined;
+} {
+  const table = (args?.table ?? args?.pool) as string | undefined;
+  return {
+    table,
+    database: (args?.database ?? args?.lake) as string | undefined,
+    name: (args?.name as string | undefined) ?? table,
+  };
+}
+
+/** Suggestions for errors any `super db` command can hit. */
+export function dbErrorSuggestions(error: string): string[] {
+  const suggestions: string[] = [];
+  if (error.includes('no database attached')) {
+    suggestions.push('Pass the database parameter (a database path or URL), or attach one with `super db attach <location>`. Create a new database with `super db init <path>`.');
+  }
+  if (error.includes('flag provided but not defined: -attach')) {
+    suggestions.push('The database tools need SuperDB v0.4.0 or later (`-attach`); this super binary is older. Check it with super_info.');
+  }
+  return suggestions;
+}
+
+function failure(error: string): { error: string; suggestions?: string[] } {
+  const suggestions = dbErrorSuggestions(error);
+  return { error, ...(suggestions.length > 0 && { suggestions }) };
+}
+
+/**
+ * A FROM clause for a table, optionally `table@branch`. Both parts are quoted,
+ * separately: names like `my-table` are not identifiers, and a quoted
+ * "table@branch" would name a table called that.
+ */
+function fromClause(table: string): string {
+  const at = table.lastIndexOf('@');
+  if (at > 0) {
+    return `from ${JSON.stringify(table.slice(0, at))}@${JSON.stringify(table.slice(at + 1))}`;
+  }
+  return `from ${JSON.stringify(table)}`;
+}
+
+/** Validate a table name before passing it to super as an argument. */
+function tableNameError(name: unknown, param: string): string | null {
+  if (typeof name !== 'string' || name === '') {
+    return `Missing required parameter: ${param}`;
+  }
+  if (name.startsWith('-')) {
+    return `Table name "${name}" starts with "-", which super would read as a flag`;
+  }
+  return null;
+}
 
 export interface DbLoadParams {
   table: string;
@@ -59,6 +117,7 @@ export interface DbLoadResult {
   success: boolean;
   message: string;
   error: string | null;
+  suggestions?: string[];
 }
 
 export interface DbCreateTableParams {
@@ -75,6 +134,7 @@ export interface DbCreateTableResult {
   success: boolean;
   message: string;
   error: string | null;
+  suggestions?: string[];
 }
 
 interface RawTable {
@@ -96,7 +156,7 @@ export async function superDbList(params: DbListParams = {}): Promise<DbListResu
     return {
       success: false,
       tables: [],
-      error: result.stderr.trim() || 'Failed to list tables',
+      ...failure(result.stderr.trim() || 'Failed to list tables'),
     };
   }
 
@@ -135,47 +195,45 @@ export async function superDbQuery(params: DbQueryParams): Promise<DbQueryResult
     };
   }
 
+  if (typeof query !== 'string' && !table) {
+    return { success: false, data: null, rowCount: 0, error: 'Missing required parameter: query (or table)' };
+  }
+
   const args: string[] = [...outputFormat.args];
 
-  // Query - if a table is specified, prepend a FROM clause
-  let fullQuery = query;
-  if (table && !/\bfrom\b/i.test(query)) {
-    fullQuery = `from ${table} | ${query}`;
+  // With a table, read from it unless the query has its own top-level FROM.
+  let fullQuery = query ?? '';
+  if (table && !hasTopLevelFrom(fullQuery)) {
+    fullQuery = fullQuery.trim() ? `${fromClause(table)} | ${fullQuery}` : fromClause(table);
   }
 
   args.push('-c', fullQuery);
 
   const result = await runSuperDb(null, args, database, superPath);
 
+  // JSON output is parsed even on failure: a SQL batch that fails partway
+  // has already committed the earlier statements, and their status records
+  // are on stdout.
+  let parsed: unknown[] | null = null;
+  if (format === 'json') {
+    try {
+      parsed = parseNDJSON(result.stdout);
+    } catch {
+      parsed = null;
+    }
+  }
+
   if (result.exitCode !== 0) {
-    const error = result.stderr.trim() || 'Query failed';
     return {
       success: false,
-      data: null,
-      rowCount: 0,
-      error,
-      ...(error.includes('no database attached') && { suggestions: [NO_DATABASE_HINT] }),
+      data: parsed && parsed.length > 0 ? parsed : null,
+      rowCount: parsed?.length ?? 0,
+      ...failure(result.stderr.trim() || 'Query failed'),
     };
   }
 
-  if (format === 'json') {
-    try {
-      const parsed = parseNDJSON(result.stdout);
-      return {
-        success: true,
-        data: parsed,
-        rowCount: parsed.length,
-        error: null,
-      };
-    } catch {
-      return {
-        success: true,
-        data: null,
-        rowCount: 0,
-        raw: result.stdout,
-        error: null,
-      };
-    }
+  if (parsed) {
+    return { success: true, data: parsed, rowCount: parsed.length, error: null };
   }
 
   return {
@@ -194,10 +252,17 @@ export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
   const { table, files, data, database, version } = params;
   const superPath = resolveSuperPath(version);
 
+  const nameError = tableNameError(table, 'table');
+  if (nameError) {
+    return { success: false, message: '', error: nameError };
+  }
+
   const args: string[] = ['-use', table];
   let stdin: string | undefined;
 
-  if (files && files.length > 0) {
+  if (files && files.length > 0 && data !== undefined) {
+    return { success: false, message: '', error: 'Provide files or data, not both' };
+  } else if (files && files.length > 0) {
     args.push(...files);
   } else if (data !== undefined) {
     args.push('-');
@@ -216,7 +281,7 @@ export async function superDbLoad(params: DbLoadParams): Promise<DbLoadResult> {
     return {
       success: false,
       message: '',
-      error: result.stderr.trim() || 'Failed to load data',
+      ...failure(result.stderr.trim() || 'Failed to load data'),
     };
   }
 
@@ -234,6 +299,11 @@ export async function superDbCreateTable(params: DbCreateTableParams): Promise<D
   const { name, orderBy, type, database, version } = params;
   const superPath = resolveSuperPath(version);
 
+  const nameError = tableNameError(name, 'name');
+  if (nameError) {
+    return { success: false, message: '', error: nameError };
+  }
+
   const args: string[] = [];
   if (orderBy) {
     args.push('-orderby', orderBy);
@@ -249,7 +319,7 @@ export async function superDbCreateTable(params: DbCreateTableParams): Promise<D
     return {
       success: false,
       message: '',
-      error: result.stderr.trim() || 'Failed to create table',
+      ...failure(result.stderr.trim() || 'Failed to create table'),
     };
   }
 

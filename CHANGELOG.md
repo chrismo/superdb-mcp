@@ -12,20 +12,25 @@ SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login
   - `pool` → `table` and `lake` → `database` parameters on all `super_db_*` tools. The old names are still accepted
   - `database` is passed as `super db -attach`; without it, `super` uses the database attached with `super db attach`
   - `super_db_list` returns `tables: [{name, id, sortKeys, sql}]` (from `super db ls -j`) instead of raw text lines
-  - `super_db_query` supports SQL `CREATE TABLE`, `CREATE SUPER TABLE`, `INSERT INTO`, and `DROP TABLE`, returning one status record per statement
+  - `super_db_query` supports SQL `CREATE TABLE`, `CREATE SUPER TABLE`, `INSERT INTO`, and `DROP TABLE`, returning one status record per statement. When a statement fails, `data` still holds the records of the statements before it
+  - `super_db_query` quotes the `table` parameter (so `my-table` works) and accepts `table@branch`. It reads from the table unless the query has its own top-level FROM; a `from` in a string, field name, or subquery no longer counts, and an empty query returns the whole table
+  - `super_db_create_table` accepts `table` as an alias for `name`. Missing required arguments are rejected instead of being passed to `super` as the string "undefined" (which created a table named `undefined`)
 - Tool descriptions read the content target version from superkit's docs instead of hardcoding "v0.3.0"
 - Output formats `table`, `jsup`, and `csup` (removed in SuperDB v0.4.0) are rejected with an explanation and a replacement
 
 ### Added
 - `super_query` `static` parameter (`super -static`): SQL like `SELECT *` and alias-qualified joins needs statically typed input, and JSON/CSV are dynamic in v0.4.0
 - Migration hints for SuperDB v0.4.0: `has()`→`is_ok()`, `missing()`→`not is_ok()`, `quiet()`→`ok()`, `fields()`→`paths()`/`keys()`, two-argument `max`/`min`→`greatest`/`least`, `blend`→`fuse`, `unblend()`→`defuse()`, `|[...]|`→`set[...]`, `|{...}|`→`map{...}`, `::time`→`::timestamp` (also flagged when it shows up as an error value in successful output), files without a recognized extension (→ `inputFormat`), and dynamic-input SQL errors (→ `static`)
-- `super_db_query` suggests the `database` parameter when no database is attached
-- CI workflow running the typecheck and tests against the SuperDB release pinned in `.superdb-version` (`scripts/install-super.sh`)
+- All `super_db_*` tools suggest the `database` parameter when no database is attached, and explain when the `super` binary is older than v0.4.0
+- `super_schema` `inputFormat` parameter, for files without a recognized extension
+- CI workflow running the typecheck and tests against the SuperDB release pinned in `.superdb-version` (`scripts/install-super.sh`); it fails if the installed `super` isn't that release, rather than skipping the tests that need it
 
 ### Fixed
 - `super_db_query` ran `super db query`, a subcommand that doesn't exist (queries are `super db -c`), so it always failed
 - All database tools passed `-lake`, a flag no SuperDB release accepts (v0.3.0 used `-db`; v0.4.0 uses `-attach`)
 - `super_db_load` passed the pool name as a positional argument instead of `-use`
+- The server crashed (EPIPE) when `super` exited before reading all of a large stdin input, e.g. a parse error on a query with several MB of inline data
+- Migration hints: no more `null` hint for names like `toString()`; every unknown function in an error gets its hint, not just the first; set/map/`missing()` hints no longer fire on text inside strings or regexes; the `inputFormat` hint also covers FROM paths; successful output only gets the `::time` hint
 - Debug-output tests only ran when v0.3.0 was installed through asdf; they now run against the default `super`
 - Vitest no longer picks up stale compiled tests in `dist/`
 

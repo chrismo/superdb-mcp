@@ -34,6 +34,15 @@ jobs:
           scripts/install-super.sh "" "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # Tests that need super skip without it, so a broken install would
+      # otherwise pass CI with most of the suite skipped.
+      - name: Verify SuperDB version
+        run: |
+          want="v$(cat .superdb-version)"
+          got="$(super --version)"
+          echo "$got"
+          case "$got" in *"$want"*) ;; *) echo "expected super $want"; exit 1 ;; esac
+
       - name: Typecheck
         run: npx tsc --noEmit
 
