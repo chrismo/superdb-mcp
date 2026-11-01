@@ -311,7 +311,7 @@ documentation lookup — see [installation instructions](#lsp-optional).
 
 | MCP Version | SuperDB Target         | Notes                                          |
 |-------------|------------------------|-------------------------------------------------|
-| 2.0.0       | v0.4.0                 | Database tables, v0.4.0 migration hints         |
+| 1.8.0       | v0.4.0                 | Database tables, v0.4.0 migration hints         |
 | 1.1.0       | v0.1.0                 | Grok patterns, tutorials, recipes from superkit |
 | 1.0.0       | v0.1.0                 | Switched to independent semver                  |
 | 0.1.0       | v0.1.0                 | Aligned with first official SuperDB release     |

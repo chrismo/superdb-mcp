@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0] - 2026-10-31 (targets SuperDB v0.4.0)
+## [1.8.0] - 2026-10-31 (targets SuperDB v0.4.0)
 
-SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login` and `SUPER_DB` with `super db attach`, and removed or renamed many functions. Tool and parameter renames make this a breaking release for MCP clients (old names are still accepted).
+SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login` and `SUPER_DB` with `super db attach`, and removed or renamed many functions. Database tools and parameters were renamed to match; the old names are still accepted.
 
 ### Changed
 - Content (expert guide, upgrade guide, tutorials, recipes, grok patterns) updated to SuperDB v0.4.0 via `@chrismo/superkit` 1.4.0
