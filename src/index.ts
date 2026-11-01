@@ -31,7 +31,7 @@ const contentTarget = docsVersion === 'unknown' ? '' : ` (content targets SuperD
 const server = new Server(
   {
     name: 'superdb-mcp',
-    version: '1.7.0',
+    version: '2.0.0',
   },
   {
     capabilities: {

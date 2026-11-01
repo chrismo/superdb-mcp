@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] (targets SuperDB v0.4.0)
+## [2.0.0] - 2026-10-31 (targets SuperDB v0.4.0)
 
 SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login` and `SUPER_DB` with `super db attach`, and removed or renamed many functions. Tool and parameter renames make this a breaking release for MCP clients (old names are still accepted).
 
 ### Changed
+- Content (expert guide, upgrade guide, tutorials, recipes, grok patterns) updated to SuperDB v0.4.0 via `@chrismo/superkit` 1.4.0
 - **Database tools rewritten for SuperDB v0.4.0** and now covered by integration tests (they had none):
   - `super_db_create_pool` → `super_db_create_table`, with a new `type` parameter (typed tables). The old tool name still works
   - `pool` → `table` and `lake` → `database` parameters on all `super_db_*` tools. The old names are still accepted

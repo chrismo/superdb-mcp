@@ -126,7 +126,7 @@ describe('superQuery LSP tip', () => {
   });
 
   it.skipIf(!superAvailable || !lspConfigured)('stays quiet on errors super_docs cannot help with', async () => {
-    const csv = await superQuery({ query: 'values quiet(this.a)', data: '{a:1}', format: 'csv' });
+    const csv = await superQuery({ query: 'values this.a', data: '{a:1}', format: 'csv' });
     expect(csv.success).toBe(false);
     expect(csv.suggestions ?? []).toEqual([]);
 
