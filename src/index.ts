@@ -14,7 +14,8 @@ import { getDocsDir } from '@chrismo/superkit';
 
 import { OUTPUT_FORMATS, type OutputFormat } from './lib/formats.js';
 import { superQuery, superSchema } from './tools/query.js';
-import { superDbList, superDbQuery, superDbLoad, superDbCreatePool } from './tools/db.js';
+import { superDbList, superDbQuery, superDbLoad, superDbCreateTable } from './tools/db.js';
+import { getDocsVersion } from './lib/version.js';
 import { superInfo, superCompare, superHelp, superTestCompat, superLspStatus } from './tools/info.js';
 import { superComplete, superDocs, getLspStatus } from './tools/lsp.js';
 import { superGrokPatterns } from './tools/grok.js';
@@ -22,6 +23,10 @@ import { superRecipes } from './tools/recipes.js';
 
 // Get docs directory from superkit
 const docsDir = getDocsDir();
+
+// The SuperDB release superkit's docs, recipes, and grok patterns target.
+const docsVersion = getDocsVersion();
+const contentTarget = docsVersion === 'unknown' ? '' : ` (content targets SuperDB v${docsVersion})`;
 
 const server = new Server(
   {
@@ -103,6 +108,19 @@ const versionProperty = {
   description: 'SuperDB version (e.g., "0.2.0") resolved via ASDF, or a direct path to a super binary. Omit for default.',
 };
 
+const databaseProperty = {
+  type: 'string',
+  description: 'Path or URL of the database (passed as `super db -attach`). Omit to use the database attached with `super db attach`.',
+};
+
+// Accept the pre-v0.4.0 parameter names (pool, lake) from older clients.
+function tableArg(args: Record<string, unknown> | undefined): string | undefined {
+  return (args?.table ?? args?.pool) as string | undefined;
+}
+function databaseArg(args: Record<string, unknown> | undefined): string | undefined {
+  return (args?.database ?? args?.lake) as string | undefined;
+}
+
 // Tool definitions — grouped by category, ordered by likely usage frequency
 const tools = [
   // --- Query & Data ---
@@ -128,11 +146,15 @@ const tools = [
         format: {
           type: 'string',
           enum: OUTPUT_FORMATS,
-          description: 'Output format (default: json). Binary formats (bsup, csup, db, parquet, arrows) are not supported.',
+          description: 'Output format (default: json). Binary formats (bsup, db, parquet, arrows) are not supported.',
         },
         inputFormat: {
           type: 'string',
-          description: 'Force input format if auto-detection fails',
+          description: 'Input format (e.g. json, sup, csv, line, auto). As of SuperDB v0.4.0 a local file\'s format comes from its extension, so files without a recognized extension need this.',
+        },
+        static: {
+          type: 'boolean',
+          description: 'Statically type-check all inputs (super -static). Needed for SQL features such as SELECT * and alias-qualified joins on JSON/CSV input.',
         },
         version: versionProperty,
       },
@@ -154,29 +176,26 @@ const tools = [
       required: ['file'],
     },
   },
-  // --- Database (Lake) ---
+  // --- Database (SuperDB v0.4.0+: tables, formerly pools) ---
   {
     name: 'super_db_query',
-    description: 'Query data from a SuperDB database pool.',
+    description: 'Run a query or SQL statements against a SuperDB database. Supports SQL CREATE TABLE, CREATE SUPER TABLE, INSERT INTO, and DROP TABLE (separate statements with ";"); each statement returns a status record. UPDATE and DELETE statements are not supported.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         query: {
           type: 'string',
-          description: 'The SuperSQL query to execute',
+          description: 'The SuperSQL query or SQL statements to execute',
         },
-        pool: {
+        table: {
           type: 'string',
-          description: 'Pool name (can also use FROM in query)',
+          description: 'Table name; prepends "from <table> |" when the query has no FROM',
         },
-        lake: {
-          type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
-        },
+        database: databaseProperty,
         format: {
           type: 'string',
           enum: OUTPUT_FORMATS,
-          description: 'Output format (default: json). Binary formats (bsup, csup, db, parquet, arrows) are not supported.',
+          description: 'Output format (default: json). Binary formats (bsup, db, parquet, arrows) are not supported.',
         },
         version: versionProperty,
       },
@@ -185,36 +204,34 @@ const tools = [
   },
   {
     name: 'super_db_list',
-    description: 'List all pools in a SuperDB database.',
+    description: 'List the tables in a SuperDB database, with their sort keys.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        lake: {
-          type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
-        },
+        database: databaseProperty,
         version: versionProperty,
       },
     },
   },
   {
-    name: 'super_db_create_pool',
-    description: 'Create a new pool in a SuperDB database.',
+    name: 'super_db_create_table',
+    description: 'Create a table in a SuperDB database. Tables are unsorted unless orderBy is given. With type, every loaded value is cast to that type and a load is rejected if any value cannot be cast. For SQL column definitions, run CREATE TABLE through super_db_query instead.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         name: {
           type: 'string',
-          description: 'Name for the new pool',
+          description: 'Name for the new table',
         },
         orderBy: {
           type: 'string',
-          description: 'Field to order/sort data by',
+          description: 'Sort key with optional :asc or :desc suffix (e.g. "ts:desc"). Cannot be changed later.',
         },
-        lake: {
+        type: {
           type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
+          description: 'SUP type that loaded values are cast to (e.g. "{id:int64,msg:string}"). Cannot be changed later.',
         },
+        database: databaseProperty,
         version: versionProperty,
       },
       required: ['name'],
@@ -222,13 +239,13 @@ const tools = [
   },
   {
     name: 'super_db_load',
-    description: 'Load data into a SuperDB database pool.',
+    description: 'Load files or inline data into a table in a SuperDB database. Nothing is committed if any value fails to cast to a typed table.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        pool: {
+        table: {
           type: 'string',
-          description: 'Pool name to load data into',
+          description: 'Table to load data into',
         },
         files: {
           type: 'array',
@@ -239,19 +256,16 @@ const tools = [
           type: 'string',
           description: 'Inline data to load (alternative to files)',
         },
-        lake: {
-          type: 'string',
-          description: 'Lake path (default: uses SUPER_DB_LAKE env or ~/.super)',
-        },
+        database: databaseProperty,
         version: versionProperty,
       },
-      required: ['pool'],
+      required: ['table'],
     },
   },
   // --- Documentation & Reference ---
   {
     name: 'super_help',
-    description: 'Get SuperDB documentation (content targets v0.3.0). Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (overview + section index), expert:<section> (e.g. expert:sql, expert:aggregates), expert:all (full document), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.',
+    description: `Get SuperDB documentation${contentTarget}. Call this before writing complex queries or when migrating from zq or earlier versions of SuperDB. Topics: expert (overview + section index), expert:<section> (e.g. expert:sql, expert:aggregates), expert:all (full document), upgrade (zq migration), tutorials (list tutorials), tutorial:<name> (read a specific tutorial). Call super_info to check your installed version.`,
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -265,7 +279,7 @@ const tools = [
   },
   {
     name: 'super_grok_patterns',
-    description: 'Search/filter grok patterns by name or regex content (content targets SuperDB v0.3.0). Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.',
+    description: `Search/filter grok patterns by name or regex content${contentTarget}. Returns matching patterns as JSON array of {pattern_name, regex} objects. No query returns all patterns.`,
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -278,7 +292,7 @@ const tools = [
   },
   {
     name: 'super_recipes',
-    description: 'Search/list available SuperDB recipe functions from the superkit collection (content targets SuperDB v0.3.0). Returns structured JSON with function signatures, descriptions, and usage examples.',
+    description: `Search/list available SuperDB recipe functions from the superkit collection${contentTarget}. Returns structured JSON with function signatures, descriptions, and usage examples.`,
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -446,6 +460,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: args?.data as string | undefined,
           format: args?.format as OutputFormat | undefined,
           inputFormat: args?.inputFormat as string | undefined,
+          static: args?.static as boolean | undefined,
           version: args?.version as string | undefined,
         });
         return {
@@ -461,7 +476,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'super_db_list': {
-        const result = await superDbList(args?.lake as string | undefined, args?.version as string | undefined);
+        const result = await superDbList({
+          database: databaseArg(args),
+          version: args?.version as string | undefined,
+        });
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
@@ -470,8 +488,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'super_db_query': {
         const result = await superDbQuery({
           query: args?.query as string,
-          pool: args?.pool as string | undefined,
-          lake: args?.lake as string | undefined,
+          table: tableArg(args),
+          database: databaseArg(args),
           format: args?.format as OutputFormat | undefined,
           version: args?.version as string | undefined,
         });
@@ -482,10 +500,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'super_db_load': {
         const result = await superDbLoad({
-          pool: args?.pool as string,
+          table: tableArg(args) as string,
           files: args?.files as string[] | undefined,
           data: args?.data as string | undefined,
-          lake: args?.lake as string | undefined,
+          database: databaseArg(args),
           version: args?.version as string | undefined,
         });
         return {
@@ -493,11 +511,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      // super_db_create_pool is the pre-v0.4.0 name, kept for older clients.
+      case 'super_db_create_table':
       case 'super_db_create_pool': {
-        const result = await superDbCreatePool({
+        const result = await superDbCreateTable({
           name: args?.name as string,
           orderBy: args?.orderBy as string | undefined,
-          lake: args?.lake as string | undefined,
+          type: args?.type as string | undefined,
+          database: databaseArg(args),
           version: args?.version as string | undefined,
         });
         return {

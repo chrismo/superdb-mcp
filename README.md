@@ -11,7 +11,7 @@ an LSP.
   - [LSP (Optional)](#lsp-optional)
 - [Tools](#tools)
   - [Query & Data](#query--data)
-  - [Database (Lake)](#database-lake)
+  - [Database](#database)
   - [Documentation & Reference](#documentation--reference)
   - [Environment & Diagnostics](#environment--diagnostics)
   - [LSP Tools](#lsp-tools)
@@ -115,19 +115,29 @@ to verify setup.
 
 #### `super_query`
 Execute a SuperSQL query on data files. On errors, includes migration hints for
-common zq-to-SuperDB syntax changes (yield→values, over→unnest, func→fn, etc.).
+common zq-to-SuperDB syntax changes (yield→values, over→unnest, func→fn, etc.)
+and SuperDB v0.4.0 changes (has→is_ok, quiet→ok, fields→paths,
+max(a,b)→greatest, blend→fuse, `|[...]|`→`set[...]`, `::time`→`::timestamp`,
+and more).
 
 ```
 query: string         # Required: The SuperSQL query
 files?: string[]      # Pipeline-style input (not for SQL FROM; use absolute paths in FROM)
 data?: string         # Inline data (alternative to files)
-format?: string       # Output: json (default), sup, csv, table, line, tsv, jsup, zeek
-inputFormat?: string  # Force input format
+format?: string       # Output: json (default), sup, csv, line, tsv, zeek
+inputFormat?: string  # Input format; needed for files without a recognized extension
+static?: boolean      # super -static: type-check all inputs (for SQL on JSON/CSV)
 ```
 
-Binary formats (`bsup`, `csup`, `db`, `parquet`, `arrows`) are rejected: results
+As of SuperDB v0.4.0, a local file's format comes from its extension, so a file
+without a recognized one needs `inputFormat`. SQL features like `SELECT *` and
+alias-qualified joins need statically typed input; JSON and CSV are dynamic, so
+set `static: true` for them.
+
+Binary formats (`bsup`, `db`, `parquet`, `arrows`) are rejected: results
 are returned as text, and binary output does not survive UTF-8 decoding. Use
-`line` for undecorated scalar output.
+`line` for undecorated scalar output. The `table`, `jsup`, and `csup` formats
+were removed in SuperDB v0.4.0.
 
 #### `super_schema`
 Inspect types in a data file by finding unique shapes with counts and examples.
@@ -136,48 +146,63 @@ Inspect types in a data file by finding unique shapes with counts and examples.
 file: string          # Path to data file
 ```
 
-### Database (Lake)
+### Database
+
+These tools target SuperDB v0.4.0+, where database _pools_ became _tables_ and
+`super db attach` replaced `super db auth`/`login` and `SUPER_DB`. Each tool
+takes an optional `database` (a path or URL, passed as `super db -attach`);
+without it, `super` uses the database attached with `super db attach`. Create a
+database with `super db init <path>`.
+
+The pre-v0.4.0 parameter names `pool` and `lake`, and the tool name
+`super_db_create_pool`, are still accepted.
 
 #### `super_db_query`
-Query data from a database pool.
+Run a query or SQL statements against a database. Supports SQL `CREATE TABLE`,
+`CREATE SUPER TABLE`, `INSERT INTO`, and `DROP TABLE`; separate statements with
+`;`. Each statement returns a status record.
 
 ```
-query: string         # The SuperSQL query
-pool?: string         # Pool name
-lake?: string         # Lake path
-format?: string       # Output: json (default), sup, csv, table, line, tsv, jsup, zeek
+query: string         # The SuperSQL query or SQL statements
+table?: string        # Prepends "from <table> |" when the query has no FROM
+database?: string     # Database path or URL (default: attached database)
+format?: string       # Output: json (default), sup, csv, line, tsv, zeek
 ```
 
 #### `super_db_list`
-List all pools in a SuperDB database.
+List the tables in a database, with their sort keys.
 
 ```
-lake?: string         # Lake path (default: ~/.super)
+database?: string     # Database path or URL (default: attached database)
 ```
 
-#### `super_db_create_pool`
-Create a new pool.
+#### `super_db_create_table`
+Create a table. Tables are unsorted unless `orderBy` is set. With `type`, every
+loaded value is cast to it, and a load is rejected if any value can't be cast.
 
 ```
-name: string          # Pool name
-orderBy?: string      # Sort key
-lake?: string         # Lake path
+name: string          # Table name
+orderBy?: string      # Sort key, e.g. "ts:desc"
+type?: string         # SUP type, e.g. "{id:int64,msg:string}"
+database?: string     # Database path or URL (default: attached database)
 ```
 
 #### `super_db_load`
-Load data into a pool.
+Load files or inline data into a table.
 
 ```
-pool: string          # Pool name
+table: string         # Table name
 files?: string[]      # Files to load
 data?: string         # Inline data
-lake?: string         # Lake path
+database?: string     # Database path or URL (default: attached database)
 ```
 
 ### Documentation & Reference
 
-Content targets SuperDB v0.1.0. Responses include a `version_note` when
-the installed runtime differs from the content target.
+Content comes from [`@chrismo/superkit`](https://github.com/chrismo/superkit)
+and targets the SuperDB release its docs declare (shown in each tool's
+description). Responses include a `version_note` when the installed runtime
+differs from the content target.
 
 #### `super_help`
 Get SuperDB documentation — expert guide, migration docs, or tutorials.
@@ -263,8 +288,10 @@ No shell escaping needed - the query string is passed directly.
 
 - Node.js 18+
 - `super` binary in PATH:
-  - [Homebrew](https://superdb.org/getting-started/install.html#homebrew) (official, latest build)
+  - [Homebrew](https://superdb.org/getting-started/install.html#homebrew): `brew install super` (official)
+  - [GitHub releases](https://github.com/superdb/super/releases) (official binaries)
   - [asdf-superdb](https://github.com/chrismo/asdf-superdb) (community, versioned builds)
+- The [database tools](#database) require SuperDB v0.4.0 or later
 
 ## Versioning
 
@@ -292,8 +319,8 @@ documentation lookup — see [installation instructions](#lsp-optional).
 This MCP server is licensed under the
 [BSD-3-Clause License](https://opensource.org/licenses/BSD-3-Clause).
 
-This project wraps [SuperDB](https://github.com/brimdata/super), which is
+This project wraps [SuperDB](https://github.com/superdb/super), which is
 licensed under the
-[SuperDB Source Available License](https://github.com/brimdata/super/blob/main/LICENSE.md).
+[SuperDB Source Available License](https://github.com/superdb/super/blob/main/LICENSE.md).
 The MCP server does not distribute SuperDB source code or binaries; it invokes
 a locally installed `super` binary at runtime.

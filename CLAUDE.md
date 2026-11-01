@@ -22,6 +22,8 @@ npm run test:watch   # Watch mode
 
 Tests live in `src/__tests__/`. Tests that require the `super` binary use `it.skipIf()` to skip gracefully when the binary is unavailable.
 
+CI (`.github/workflows/test.yml`) runs the suite against the SuperDB release pinned in `.superdb-version`. Install that release locally with `scripts/install-super.sh` (defaults to `~/.local/bin`). The database tool tests need SuperDB v0.4.0+ and skip on older binaries.
+
 **TDD is required.** Write a failing test before implementing a fix or feature. The cycle is: red test, green implementation, then refactor if needed.
 
 ## Architecture
@@ -38,7 +40,7 @@ This is an MCP (Model Context Protocol) server that wraps the SuperDB `super` bi
 ### Tool Implementations
 
 - **`src/tools/query.ts`** - `super_query`, `super_schema` - file-based query operations
-- **`src/tools/db.ts`** - `super_db_*` tools for database pool operations
+- **`src/tools/db.ts`** - `super_db_*` tools for database tables (SuperDB v0.4.0+: `super db -attach`, `load -use`, SQL DDL via `super db -c`)
 - **`src/tools/info.ts`** - `super_info`, `super_help`, `super_test_compat` - version/docs/compatibility
 - **`src/tools/lsp.ts`** - `super_complete`, `super_docs` - LSP-powered code intelligence
 

@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { superQuery } from '../tools/query.js';
 import { superDbQuery } from '../tools/db.js';
 import { runSuper } from '../lib/super.js';
-import { resolveSuperPath } from '../lib/asdf.js';
 
 // Check if super binary is available. Resolved at module load, not in
 // beforeAll: skipIf is evaluated during collection, so a value set later is
@@ -10,17 +12,6 @@ import { resolveSuperPath } from '../lib/asdf.js';
 const superAvailable = await runSuper(['--version'])
   .then(r => r.exitCode === 0)
   .catch(() => false);
-
-// Check if 0.3.0 is installed (needed for debug operator tests)
-function isVersionInstalled(version: string): boolean {
-  try {
-    resolveSuperPath(version);
-    return true;
-  } catch {
-    return false;
-  }
-}
-const v030Installed = isVersionInstalled('0.3.0');
 
 describe('superQuery migration hints', () => {
   it.skipIf(!superAvailable)('suggests "values" when query uses "yield"', async () => {
@@ -53,7 +44,7 @@ describe('superQuery migration hints', () => {
   it.skipIf(!superAvailable)('does not mistake an identifier containing a keyword for the keyword', async () => {
     const result = await superQuery({ query: 'values nosuchfunc(a)', data: '{a:1}' });
     expect(result.success).toBe(false);
-    expect(result.suggestions!.some(s => s.includes('func was renamed'))).toBe(false);
+    expect(result.suggestions?.some(s => s.includes('func was renamed')) ?? false).toBe(false);
   });
 
   it.skipIf(!superAvailable)('returns no suggestions for unrelated errors', async () => {
@@ -162,7 +153,7 @@ describe('superQuery inline-regex hint', () => {
 describe('superQuery output formats', () => {
   it.skipIf(!superAvailable)('emits text for "line", not binary bsup', async () => {
     const result = await superQuery({
-      query: 'values quiet(this.answer)',
+      query: 'values this.answer',
       data: '{answer:5}',
       format: 'line',
     });
@@ -171,21 +162,21 @@ describe('superQuery output formats', () => {
   });
 
   it.skipIf(!superAvailable)('emits distinct output per text format', async () => {
-    const q = { query: 'values this', data: '{a:1}' };
+    const q = { query: 'values this', data: '{a:1,b:2}' };
     const line = await superQuery({ ...q, format: 'line' });
     const tsv = await superQuery({ ...q, format: 'tsv' });
-    const jsup = await superQuery({ ...q, format: 'jsup' });
-    for (const r of [line, tsv, jsup]) {
+    const csv = await superQuery({ ...q, format: 'csv' });
+    for (const r of [line, tsv, csv]) {
       expect(r.success).toBe(true);
       expect(r.raw).toBeTruthy();
     }
     // The pre-fix bug: every unhandled format fell through to the same bsup bytes
-    expect(new Set([line.raw, tsv.raw, jsup.raw]).size).toBe(3);
+    expect(new Set([line.raw, tsv.raw, csv.raw]).size).toBe(3);
   });
 
   it('rejects an unknown format instead of falling through to binary', async () => {
     const result = await superQuery({
-      query: 'values quiet(this.answer)',
+      query: 'values this.answer',
       data: '{answer:5}',
       format: 'totalgarbage' as never,
     });
@@ -197,7 +188,7 @@ describe('superQuery output formats', () => {
   });
 
   it('rejects binary formats that cannot survive UTF-8 decoding', async () => {
-    for (const format of ['bsup', 'csup', 'db', 'parquet', 'arrows']) {
+    for (const format of ['bsup', 'db', 'parquet', 'arrows']) {
       const result = await superQuery({
         query: 'values 1',
         data: '',
@@ -208,8 +199,17 @@ describe('superQuery output formats', () => {
     }
   });
 
+  it('rejects formats removed in SuperDB v0.4.0 with an explanation', async () => {
+    for (const format of ['table', 'jsup', 'csup']) {
+      const result = await superQuery({ query: 'values 1', data: '', format: format as never });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(format);
+      expect(result.error).toContain('v0.4.0');
+    }
+  });
+
   it.skipIf(!superAvailable)('still parses rows for the default json format', async () => {
-    const result = await superQuery({ query: 'values quiet(this.answer)', data: '{answer:5}' });
+    const result = await superQuery({ query: 'values this.answer', data: '{answer:5}' });
     expect(result.success).toBe(true);
     expect(result.data).toEqual([5]);
     expect(result.rowCount).toBe(1);
@@ -230,11 +230,11 @@ describe('superDbQuery output formats', () => {
   });
 });
 
+// The debug operator exists in SuperDB v0.3.0 and later.
 describe('superQuery debug output', () => {
-  it.skipIf(!v030Installed)('captures debug operator stderr in result', async () => {
+  it.skipIf(!superAvailable)('captures debug operator stderr in result', async () => {
     const result = await superQuery({
       query: 'values "hello, world" | debug {debug:this} | where false',
-      version: '0.3.0',
     });
     expect(result.success).toBe(true);
     expect(result.debug).toBeDefined();
@@ -242,12 +242,87 @@ describe('superQuery debug output', () => {
     expect(result.debug).toContain('hello, world');
   });
 
-  it.skipIf(!v030Installed)('debug field is absent when no debug output', async () => {
+  it.skipIf(!superAvailable)('debug field is absent when no debug output', async () => {
     const result = await superQuery({
       query: 'values 1,2,3',
-      version: '0.3.0',
     });
     expect(result.success).toBe(true);
     expect(result.debug).toBeUndefined();
+  });
+});
+
+// SuperDB v0.4.0 removed or renamed several functions and syntax forms. These
+// hints map the resulting errors to the replacement.
+describe('superQuery v0.4.0 migration hints', () => {
+  const cases: Array<[string, string, string]> = [
+    ['values has(a)', 'is_ok(', 'has()'],
+    ['values missing(a)', 'is_ok(', 'missing()'],
+    ['values quiet(a)', 'ok(', 'quiet()'],
+    ['values fields(this)', 'paths(', 'fields()'],
+    ['values max(a, 2)', 'greatest(', 'max('],
+    ['values min(a, 2)', 'least(', 'min('],
+    ['values unblend(this)', 'defuse(', 'unblend()'],
+    ['blend', 'fuse', 'blend'],
+    ['values |[1,2]|', 'set[', '|[...]|'],
+    ['values |{"a":1}|', 'map{', '|{...}|'],
+  ];
+
+  for (const [query, replacement, old] of cases) {
+    it.skipIf(!superAvailable)(`suggests ${replacement.replace(/[([{]$/, '')} for ${old}`, async () => {
+      const result = await superQuery({ query, data: '{a:1}' });
+      expect(result.success).toBe(false);
+      expect(result.suggestions, result.error ?? '').toBeDefined();
+      expect(result.suggestions!.some(s => s.includes(replacement) && s.includes('v0.4.0'))).toBe(true);
+    });
+  }
+
+  it.skipIf(!superAvailable)('does not suggest greatest() for the max() aggregate', async () => {
+    const result = await superQuery({ query: 'aggregate m:=max(a) | values nosuchfunc(m)', data: '{a:1}' });
+    expect(result.success).toBe(false);
+    expect(result.suggestions?.some(s => s.includes('greatest(')) ?? false).toBe(false);
+  });
+
+  it.skipIf(!superAvailable)('suggests inputFormat when a file has no recognized extension', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'superdb-mcp-q-'));
+    const file = join(dir, 'noext');
+    writeFileSync(file, '{"a":1}\n');
+    try {
+      const result = await superQuery({ query: 'values a', files: [file] });
+      expect(result.success).toBe(false);
+      expect(result.suggestions!.some(s => s.includes('inputFormat'))).toBe(true);
+
+      const fixed = await superQuery({ query: 'values a', files: [file], inputFormat: 'json' });
+      expect(fixed.data).toEqual([1]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(!superAvailable)('flags ::time, which now means time-of-day (use ::timestamp)', async () => {
+    const result = await superQuery({ query: "values '2025-01-01T00:00:00Z'::time" });
+    expect(result.suggestions!.some(s => s.includes('::timestamp'))).toBe(true);
+  });
+});
+
+describe('superQuery static type checking', () => {
+  let dir: string;
+  let file: string;
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'superdb-mcp-static-'));
+    file = join(dir, 'data.json');
+    writeFileSync(file, '{"id":1,"v":"a"}\n{"id":2,"v":"b"}\n');
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it.skipIf(!superAvailable)('suggests static for SQL on dynamic (JSON) input', async () => {
+    const result = await superQuery({ query: `select * from "${file}"` });
+    expect(result.success).toBe(false);
+    expect(result.suggestions!.some(s => s.includes('static'))).toBe(true);
+  });
+
+  it.skipIf(!superAvailable)('runs SQL on JSON input with static: true', async () => {
+    const result = await superQuery({ query: `select * from "${file}" order by id`, static: true });
+    expect(result.error).toBeNull();
+    expect(result.data).toEqual([{ id: 1, v: 'a' }, { id: 2, v: 'b' }]);
   });
 });
