@@ -1,6 +1,6 @@
 {
   "name": "superdb-mcp",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "MCP server for SuperDB - execute SuperSQL queries, version detection, and embedded documentation",
   "type": "module",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
   "author": "chrismo",
   "license": "MIT",
   "dependencies": {
-    "@chrismo/superkit": "^1.4.0",
+    "@chrismo/superkit": "^1.4.1",
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {

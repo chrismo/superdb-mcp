@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { superInfo } from '../tools/info.js';
+import { superInfo, superHelp } from '../tools/info.js';
 import { resolveSuperPath } from '../lib/asdf.js';
 import { getDocsVersion } from '../lib/version.js';
 
@@ -32,4 +32,14 @@ describe('superInfo', () => {
       expect(result.compatibility.warnings).toHaveLength(0);
     }
   );
+});
+
+describe('superHelp upgrade guide', () => {
+  it('includes the v0.4.0 gotchas added in superkit 1.4.1', () => {
+    const result = superHelp('upgrade');
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('`exists()` is not a replacement for `has()`');
+    expect(result.content).toContain('data: file format required');
+    expect(result.content).toContain('Convert JSUP files before upgrading');
+  });
 });

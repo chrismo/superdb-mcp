@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-11-01 (targets SuperDB v0.4.0)
+
+### Changed
+- `@chrismo/superkit` 1.4.1: the upgrade guide covers more v0.4.0 changes. A missing field on JSON or stdin input now gives an error value and exit 0, `typeof(x) == <time>` is silently false, `exists()` doesn't test whether a field is present, and old JSUP files are read with no error. It also adds the `file format required` error text, `super db` status records, the Go module path and Go 1.27, and the `bucket()`-on-constants known issue. The debug tutorial's `seq` examples now count correctly on macOS
+
 ## [1.8.0] - 2026-10-31 (targets SuperDB v0.4.0)
 
 SuperDB v0.4.0 renamed database pools to tables, replaced `super db auth`/`login` and `SUPER_DB` with `super db attach`, and removed or renamed many functions. Database tools and parameters were renamed to match; the old names are still accepted.
